@@ -1,5 +1,5 @@
 const CACHE = 'brew-timer-v2';
-const ASSETS = ['./', './index.html', './style.css', './script.js', './manifest.json'];
+const ASSETS = ['./', './index.html', './css/style.css', './js/script.js', './manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
