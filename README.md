@@ -1,0 +1,42 @@
+# The Brew Timer v2.0
+
+A premium, offline-capable Progressive Web App (PWA) designed to perfect your coffee brewing process.
+
+## Features
+
+- **Multi-Method Support:** Includes preset ratios and stage-timers for Pour Over, French Press, Espresso, AeroPress, and Cold Brew.
+- **Smart Ratio Calculator:** Adjust your coffee dose or tweak the water ratio on the fly—all pouring stages calculate proportionally.
+- **Progressive Web App (PWA):** Installable on desktop and mobile. Works 100% offline.
+- **Stage-by-Stage Timer:** Step-by-step visual and audible instructions so you never miss a pour.
+- **Brew History & Notes:** Log your completed brews, rate them, and add tasting notes.
+- **Favorites:** Save your tweaked recipes to a favorites list for one-click loading.
+- **Dark & Light Modes:** A gorgeous, glassmorphic UI that adapts to your preference.
+- **Haptics & Audio:** Subtle vibrations on mobile and elegant chime alerts on stage transitions.
+
+## Project Structure
+
+This project uses entirely vanilla HTML, CSS, and JavaScript. There are no build tools or compilers required.
+
+- `index.html` - The core application layout and UI.
+- `style.css` - All styling, theming tokens, and animations.
+- `script.js` - The application logic, state management, and `localStorage` syncing.
+- `sw.js` - The Service Worker that enables offline functionality.
+- `manifest.json` - The PWA manifest for home-screen installation.
+
+## How to Run Locally
+
+You can serve this project using any basic HTTP server. For example:
+
+1. Using Python:
+   ```bash
+   python3 -m http.server
+   ```
+2. Using Node:
+   ```bash
+   npx serve .
+   ```
+
+Then simply open `http://localhost:8000` or `http://localhost:3000` in your web browser.
+
+## Contributing
+Feel free to open a pull request if you want to add new brewing methods, tweak the UI, or add additional features like a built-in recipe sharing system!
