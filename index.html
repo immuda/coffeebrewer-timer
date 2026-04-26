@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Brew Timer – Precision Coffee Brewing</title>
+    <meta name="description" content="A precision coffee timer and water ratio calculator with brew method presets, stage-guided brewing, bloom control, brew history, and AI-powered recipe parsing.">
+    <meta name="theme-color" content="#c8823c">
+    <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="dark">
+
+    <!-- ── SPLASH SCREEN ───────────────────────── -->
+    <div class="splash" id="splash">
+        <div class="splash-bean">☕</div>
+        <div class="splash-text">The Brew Timer</div>
+    </div>
+
+    <!-- ── TOAST CONTAINER ─────────────────────── -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- ── CONFETTI CANVAS ─────────────────────── -->
+    <canvas class="confetti-canvas" id="confetti-canvas"></canvas>
+
+    <div class="page" id="page">
+
+        <!-- ── HEADER ──────────────────────────────── -->
+        <header class="hero">
+            <div class="hero-row">
+                <h1 class="hero-title">The Brew Timer</h1>
+                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">🌙</button>
+            </div>
+            <p class="hero-sub">Precision brewing, every cup</p>
+        </header>
+
+        <!-- ── MAIN CARD ───────────────────────────── -->
+        <div class="card">
+
+            <!-- Brew Method -->
+            <div class="section" id="section-method">
+                <label class="section-label">Brew Method</label>
+                <div class="method-pills" id="method-pills"></div>
+            </div>
+
+
+
+            <!-- Bloom Toggle -->
+            <div class="section" id="bloom-section" hidden>
+                <label class="section-label">Optional Step</label>
+                <button class="bloom-toggle" id="bloom-toggle" aria-pressed="true">
+                    <div class="bloom-left">
+                        <div class="bloom-icon-box" id="bloom-icon-box">🌸</div>
+                        <div class="bloom-text">
+                            <div class="bloom-title" id="bloom-title">Bloom / Pre-wet</div>
+                            <div class="bloom-desc" id="bloom-desc"></div>
+                        </div>
+                    </div>
+                    <div class="toggle-track" id="toggle-track">
+                        <div class="toggle-thumb" id="toggle-thumb"></div>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Coffee Grams -->
+            <div class="section" id="section-coffee">
+                <div class="coffee-header">
+                    <label class="section-label" style="margin-bottom:0">Coffee</label>
+                    <div class="gram-stepper">
+                        <button class="step-btn" id="gram-dec" aria-label="Decrease">−</button>
+                        <span class="gram-display" id="gram-display">20<span class="gram-unit">g</span></span>
+                        <button class="step-btn" id="gram-inc" aria-label="Increase">+</button>
+                    </div>
+                </div>
+                <input type="range" id="gram-slider" min="5" max="100" value="20" aria-label="Coffee grams">
+                <!-- Quick-dose buttons -->
+                <div class="quick-dose" id="quick-dose">
+                    <button class="dose-btn" data-g="15">15g</button>
+                    <button class="dose-btn" data-g="18">18g</button>
+                    <button class="dose-btn active" data-g="20">20g</button>
+                    <button class="dose-btn" data-g="25">25g</button>
+                    <button class="dose-btn" data-g="30">30g</button>
+                </div>
+            </div>
+
+            <!-- Water Suggestion -->
+            <div class="water-box" id="water-box">
+                <div class="water-bg-icon">💧</div>
+                <div class="water-label-row">
+                    <span>Water Needed · Ratio</span>
+                    <div class="ratio-stepper">
+                        <button class="step-btn small" id="ratio-dec" aria-label="Decrease ratio">−</button>
+                        <span class="ratio-display" id="ratio-display">1:15</span>
+                        <button class="step-btn small" id="ratio-inc" aria-label="Increase ratio">+</button>
+                    </div>
+                </div>
+                <div class="water-value">
+                    <span class="water-number" id="water-number">300</span>
+                    <span class="water-ml">ml</span>
+                </div>
+                <div class="poured-row" id="poured-row" hidden>
+                    <div class="poured-label">Poured so far</div>
+                    <div class="poured-value" id="poured-value">0<span class="poured-ml">ml</span></div>
+                </div>
+            </div>
+
+            <!-- Brew Tips -->
+            <div class="brew-tip" id="brew-tip">
+                <span class="tip-icon">🌡️</span>
+                <span id="tip-text"></span>
+            </div>
+
+            <!-- Timer Display -->
+            <div class="timer-display" id="timer-wrap">
+                <div class="pulse-ring" id="pulse-ring"></div>
+                <div class="timer-value" id="timer-value">00:00</div>
+                <div class="timer-sub-row">
+                    <span class="timer-sub" id="timer-sub">Total 03:45</span>
+                    <button class="countdown-toggle" id="countdown-toggle" title="Toggle countdown mode" aria-label="Toggle countdown">⏱ Count Up</button>
+                </div>
+            </div>
+
+            <!-- Stage Progress Bars -->
+            <div class="progress-area" id="progress-area">
+                <div class="progress-header">
+                    <span class="progress-stage" id="progress-stage">Ready to brew</span>
+                    <span class="progress-count" id="progress-count"></span>
+                </div>
+                <div class="bar-track total-track">
+                    <div class="bar-fill total-fill" id="total-fill"></div>
+                </div>
+                <div class="bar-track stage-track">
+                    <div class="bar-fill stage-fill" id="stage-fill"></div>
+                </div>
+            </div>
+
+            <!-- Stage List -->
+            <div class="stage-list" id="stage-list"></div>
+
+            <!-- Controls -->
+            <div class="controls" id="controls">
+                <button class="btn-start" id="btn-start">Start</button>
+                <button class="btn-icon" id="btn-sound" title="Toggle sound" aria-label="Toggle sound">🔔</button>
+                <button class="btn-icon" id="btn-reset" title="Reset timer (R)" aria-label="Reset timer">↺</button>
+            </div>
+
+            <!-- Keyboard hint -->
+            <div class="kbd-hint" id="kbd-hint">
+                <kbd>Space</kbd> Start/Pause &nbsp; <kbd>R</kbd> Reset
+            </div>
+
+        </div><!-- /.card -->
+
+        <!-- Brew Notes (shown after completion) -->
+        <div class="card brew-notes-card" id="brew-notes-card" hidden>
+            <h2 class="card-title">How was this brew? ☕</h2>
+            <div class="notes-rating" id="notes-rating">
+                <button class="rating-btn" data-r="sour">😖 Sour</button>
+                <button class="rating-btn" data-r="balanced">😊 Balanced</button>
+                <button class="rating-btn" data-r="bitter">😣 Bitter</button>
+            </div>
+            <textarea class="notes-text" id="notes-text" rows="2" placeholder="Optional notes..."></textarea>
+            <div class="notes-actions">
+                <button class="btn-save-note" id="btn-save-note">💾 Save to History</button>
+                <button class="btn-skip-note" id="btn-skip-note">Skip</button>
+            </div>
+        </div>
+
+        <!-- Footer buttons -->
+        <div class="footer-row">
+            <button class="footer-btn" id="btn-history" title="Brew history">📜 History</button>
+            <button class="footer-btn" id="btn-favorites" title="Saved recipes">⭐ Favorites</button>
+            <p class="version">v2.0.0</p>
+        </div>
+
+    </div><!-- /.page -->
+
+    <!-- ── HISTORY MODAL ──────────────────────────── -->
+    <div class="modal-overlay" id="history-modal" hidden>
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="modal-title">📜 Brew History</h2>
+                <button class="modal-close" id="history-close">✕</button>
+            </div>
+            <div class="modal-body" id="history-body">
+                <p class="empty-state">No brews logged yet.</p>
+            </div>
+            <button class="btn-clear-history" id="btn-clear-history">🗑 Clear All</button>
+        </div>
+    </div>
+
+    <!-- ── FAVORITES MODAL ────────────────────────── -->
+    <div class="modal-overlay" id="favorites-modal" hidden>
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="modal-title">⭐ Saved Recipes</h2>
+                <button class="modal-close" id="favorites-close">✕</button>
+            </div>
+            <div class="modal-body" id="favorites-body">
+                <p class="empty-state">No favorites saved yet.</p>
+            </div>
+            <button class="btn-save-fav" id="btn-save-fav">+ Save Current Recipe</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

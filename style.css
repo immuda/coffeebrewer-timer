@@ -1,0 +1,237 @@
+/* ==================================================================
+   The Brew Timer – style.css v2.0
+   Warm, minimal, coffee-inspired theme (Dark & Light)
+   ================================================================== */
+
+/* ── Tokens ──────────────────────────────────────────── */
+:root {
+  /* Dark Theme (Default) */
+  --bg:          #1a0e08;
+  --card-bg:     rgba(40, 20, 8, 0.85);
+  --card-border: rgba(200, 130, 60, 0.2);
+  --gold:        #e8c99a;
+  --gold-60:     rgba(200, 160, 100, 0.6);
+  --gold-45:     rgba(200, 160, 100, 0.45);
+  --gold-30:     rgba(200, 160, 100, 0.3);
+  --gold-25:     rgba(200, 160, 100, 0.25);
+  --gold-15:     rgba(200, 160, 100, 0.15);
+  --amber:       #c8823c;
+  --amber-dim:   rgba(200, 130, 60, 0.2);
+  --amber-glow:  rgba(200, 130, 60, 0.3);
+  --blue:        #6ba3d6;
+  --blue-dim:    rgba(107, 163, 214, 0.12);
+  --blue-border: rgba(107, 163, 214, 0.3);
+  --green:       #7ecfa3;
+  --green-dim:   rgba(126, 207, 163, 0.15);
+  --green-border:rgba(60, 168, 108, 0.3);
+  --red:         #e88080;
+  
+  --bg-grad-1: rgba(101,55,20,0.3);
+  --bg-grad-2: rgba(60,30,10,0.4);
+  
+  --serif:       'Playfair Display', serif;
+  --sans:        'Lato', sans-serif;
+}
+
+[data-theme="light"] {
+  --bg:          #fdfbf7;
+  --card-bg:     rgba(255, 252, 248, 0.85);
+  --card-border: rgba(200, 130, 60, 0.3);
+  --gold:        #5c3a21;
+  --gold-60:     rgba(92, 58, 33, 0.7);
+  --gold-45:     rgba(92, 58, 33, 0.5);
+  --gold-30:     rgba(92, 58, 33, 0.4);
+  --gold-25:     rgba(92, 58, 33, 0.3);
+  --gold-15:     rgba(92, 58, 33, 0.15);
+  --amber:       #b0631c;
+  --amber-dim:   rgba(200, 130, 60, 0.15);
+  --amber-glow:  rgba(200, 130, 60, 0.2);
+  
+  --bg-grad-1: rgba(230, 200, 170, 0.3);
+  --bg-grad-2: rgba(210, 180, 150, 0.4);
+}
+
+/* ── Reset ───────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+button { font: inherit; cursor: pointer; border: none; background: none; }
+input, textarea { font: inherit; outline: none; }
+[hidden] { display: none !important; }
+
+/* ── Splash Screen ───────────────────────────────────── */
+.splash {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 9999; transition: opacity 0.5s ease;
+}
+.splash-bean { font-size: 64px; animation: bounce 1s infinite alternate; }
+.splash-text { font-family: var(--serif); font-size: 24px; color: var(--gold); margin-top: 16px; }
+@keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-20px); } }
+
+/* ── Toast Container ─────────────────────────────────── */
+.toast-container {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 10px; z-index: 9000;
+  pointer-events: none;
+}
+.toast {
+  background: var(--amber); color: #fff; padding: 12px 20px; border-radius: 20px;
+  font-size: 14px; font-weight: 700; box-shadow: 0 4px 12px var(--amber-glow);
+  animation: toast-in 0.3s ease forwards;
+}
+@keyframes toast-in { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Confetti Canvas ─────────────────────────────────── */
+.confetti-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 8000; }
+
+/* ── Body ────────────────────────────────────────────── */
+body {
+  font-family: var(--sans); background: var(--bg);
+  background-image: radial-gradient(ellipse at 20% 20%, var(--bg-grad-1) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, var(--bg-grad-2) 0%, transparent 50%);
+  color: var(--gold); min-height: 100vh; overflow-x: hidden;
+}
+.page { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; padding: 24px 16px; }
+
+/* ── Header ──────────────────────────────────────────── */
+.hero { text-align: center; margin-bottom: 24px; width: 100%; max-width: 420px; }
+.hero-row { display: flex; align-items: center; justify-content: center; position: relative; }
+.hero-title { font-family: var(--serif); font-size: clamp(28px, 6vw, 42px); font-weight: 900; color: var(--gold); letter-spacing: 0.06em; text-shadow: 0 2px 20px var(--amber-glow); }
+.theme-toggle { position: absolute; right: 0; font-size: 20px; padding: 8px; border-radius: 50%; background: var(--amber-dim); color: var(--gold); }
+.hero-sub { color: var(--gold-60); font-weight: 300; font-size: 13px; margin-top: 6px; letter-spacing: 0.12em; text-transform: uppercase; }
+
+/* ── Card Container ──────────────────────────────────── */
+.card { width: 100%; max-width: 420px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 28px 24px; backdrop-filter: blur(10px); box-shadow: 0 24px 80px rgba(0,0,0,0.6); margin-bottom: 20px; }
+[data-theme="light"] .card { box-shadow: 0 12px 40px rgba(0,0,0,0.1); }
+.section { margin-bottom: 20px; }
+.section-label { display: block; color: var(--gold-60); font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 10px; font-weight: 700;}
+
+/* ── Method Pills ────────────────────────────────────── */
+.method-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.method-pill { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--gold-15); color: var(--gold-60); font-size: 12px; transition: all 0.2s; }
+.method-pill:hover { background: var(--amber-dim); }
+.method-pill.active { border-color: var(--amber); background: var(--amber-dim); color: var(--gold); font-weight: 700;}
+
+/* ── AeroPress & Bloom ───────────────────────────────── */
+.aero-prompt-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 12px; border: 1px dashed var(--amber-glow); background: var(--amber-dim); transition: all 0.2s; text-align: left; color: var(--gold); }
+.aero-badge { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 12px; background: var(--green-dim); border: 1px solid var(--green-border); }
+.aero-badge-btn { background: var(--gold-15); border: 1px solid var(--gold-25); border-radius: 7px; color: var(--gold-60); font-size: 11px; padding: 4px 8px; }
+.bloom-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-radius: 13px; border: 1px solid var(--gold-15); background: var(--gold-15); transition: all 0.25s; }
+.bloom-toggle.on { border-color: var(--blue-border); background: var(--blue-dim); }
+.bloom-left { display: flex; align-items: center; gap: 12px; }
+.bloom-icon-box { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: var(--gold-15); border: 1px solid var(--gold-15); }
+.bloom-text { text-align: left; }
+.bloom-title { font-size: 13px; color: var(--gold-45); }
+.bloom-desc { font-size: 11px; color: var(--gold-30); margin-top: 2px; }
+.toggle-track { width: 42px; height: 24px; border-radius: 12px; background: var(--gold-25); position: relative; flex-shrink: 0; }
+.toggle-thumb { position: absolute; top: 4px; left: 4px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left 0.25s; }
+.bloom-toggle.on .toggle-thumb { left: 22px; }
+.bloom-toggle.on .toggle-track { background: var(--blue); }
+
+/* ── Coffee Grams & Quick Dose ───────────────────────── */
+.coffee-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.gram-stepper { display: flex; align-items: center; gap: 8px; }
+.step-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--amber-glow); color: var(--amber); font-size: 18px; display: flex; align-items: center; justify-content: center; }
+.gram-display { font-family: var(--serif); font-size: 28px; font-weight: 700; color: var(--gold); min-width: 64px; text-align: center; }
+.gram-unit { font-size: 14px; font-weight: 400; color: var(--gold-60); margin-left: 3px; }
+input[type="range"] { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 4px; background: var(--gold-15); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--amber); cursor: pointer; box-shadow: 0 0 8px var(--amber-glow); }
+.quick-dose { display: flex; justify-content: space-between; margin-top: 16px; }
+.dose-btn { flex: 1; margin: 0 4px; padding: 6px 0; font-size: 12px; border-radius: 8px; border: 1px solid var(--gold-15); color: var(--gold-60); background: transparent; }
+.dose-btn.active { background: var(--amber-dim); color: var(--gold); border-color: var(--amber); }
+
+/* ── Water & Tip ─────────────────────────────────────── */
+.water-box { background: var(--amber-dim); border: 1px solid var(--amber-glow); border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; position: relative; overflow: hidden; }
+.water-bg-icon { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 48px; opacity: 0.06; }
+.water-label-row { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 12px; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; font-weight: 700;}
+.ratio-stepper { display: inline-flex; align-items: center; background: rgba(0,0,0,0.25); border-radius: 16px; padding: 4px 6px; border: 1px solid rgba(255,255,255,0.1); }
+.step-btn.small { width: 28px; height: 28px; font-size: 20px; font-weight: 300; background: rgba(255,255,255,0.05); border: none; color: var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+.step-btn.small:hover { background: rgba(255,255,255,0.2); transform: scale(1.1); color: var(--text); }
+.ratio-display { font-family: var(--sans); font-size: 16px; font-weight: 900; color: var(--text); min-width: 38px; text-align: center; letter-spacing: 0; }
+.water-label { font-size: 11px; color: var(--gold-60); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 6px; font-weight: 700;}
+.water-value { display: flex; align-items: baseline; gap: 6px; }
+.water-number { font-family: var(--serif); font-size: 42px; font-weight: 900; color: var(--amber); transition: color 0.3s; }
+.water-number.rolling { color: var(--gold); }
+.water-ml { color: var(--gold-60); font-size: 16px; }
+.brew-tip { display: flex; align-items: center; gap: 10px; background: var(--gold-15); border-radius: 12px; padding: 12px 16px; margin-bottom: 24px; font-size: 13px; color: var(--gold-60); }
+.brew-tip strong { color: var(--gold); }
+
+/* ── Timer ───────────────────────────────────────────── */
+.timer-display { text-align: center; margin-bottom: 24px; position: relative; display: flex; flex-direction: column; align-items: center; }
+.timer-value { font-family: var(--serif); font-size: clamp(56px, 15vw, 72px); font-weight: 900; color: var(--gold); line-height: 1; letter-spacing: 0.04em; text-shadow: 0 0 30px var(--amber-glow); }
+.timer-value.done { color: var(--green); text-shadow: 0 0 30px var(--green-dim); }
+.timer-sub-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 6px; }
+.timer-sub { font-size: 11px; color: var(--gold-45); letter-spacing: 0.1em; text-transform: uppercase; }
+.countdown-toggle { font-size: 10px; padding: 4px 8px; border-radius: 10px; border: 1px solid var(--gold-25); color: var(--gold-60); background: var(--gold-15); }
+.countdown-toggle.active { background: var(--amber-dim); color: var(--gold); border-color: var(--amber); }
+
+/* ── Progress & Stages ───────────────────────────────── */
+.progress-area { margin-bottom: 22px; }
+.progress-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.progress-stage { font-size: 12px; color: var(--gold); font-weight: 700;}
+.progress-count { font-size: 12px; color: var(--gold-45); }
+.bar-track { border-radius: 6px; overflow: hidden; background: var(--gold-15); }
+.total-track { height: 6px; margin-bottom: 4px; }
+.stage-track { height: 3px; }
+.bar-fill { height: 100%; width: 0%; border-radius: 6px; transition: width 0.5s linear; }
+.total-fill { background: linear-gradient(90deg, #8b4513, var(--amber)); }
+.stage-fill { background: var(--amber); transition: width 0.8s linear; }
+
+.stage-list { margin-bottom: 24px; border: 1px solid var(--amber-glow); border-radius: 14px; padding: 6px 14px; background: var(--amber-dim); }
+.stage-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--gold-15); transition: opacity 0.3s; }
+.stage-row:last-child { border-bottom: none; }
+.stage-row.is-done { opacity: 0.4; }
+.stage-dot { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--gold-25); display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; color: transparent; }
+.stage-row.is-active .stage-dot { border-color: var(--amber); background: var(--amber-dim); }
+.stage-row.is-done .stage-dot { border-color: var(--green); background: var(--green-dim); color: var(--green); }
+.stage-info { flex: 1; font-size: 13px; color: var(--gold-60); }
+.stage-row.is-active .stage-info { color: var(--gold); font-weight: 700;}
+.bloom-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; background: var(--blue-dim); color: var(--blue); margin-left: 6px; }
+.stage-meta { font-size: 12px; color: var(--gold-45); }
+.water-tag { color: var(--blue); margin-left: 6px; font-weight: 700;}
+
+/* ── Controls & Keyboard ─────────────────────────────── */
+.controls { display: flex; gap: 12px; margin-bottom: 16px; }
+.btn-start { flex: 1; padding: 14px; border-radius: 12px; background: linear-gradient(135deg, #8b4513, var(--amber)); color: #fff; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; box-shadow: 0 4px 20px var(--amber-glow); }
+.btn-start.is-done { background: var(--green-dim); color: var(--green); box-shadow: none; }
+.btn-icon { padding: 14px; border-radius: 12px; border: 1px solid var(--amber-glow); color: var(--gold-60); font-size: 18px; }
+.btn-icon.muted { border-color: var(--gold-15); background: var(--gold-15); color: var(--gold-25); }
+.kbd-hint { text-align: center; font-size: 11px; color: var(--gold-30); }
+kbd { background: var(--gold-15); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--gold-25); font-family: monospace; }
+
+/* ── Brew Notes Card ─────────────────────────────────── */
+.brew-notes-card { text-align: center; }
+.card-title { font-size: 18px; color: var(--gold); margin-bottom: 16px; }
+.notes-rating { display: flex; justify-content: center; gap: 10px; margin-bottom: 16px; }
+.rating-btn { padding: 8px 12px; border-radius: 12px; border: 1px solid var(--gold-25); color: var(--gold-60); background: var(--gold-15); font-size: 14px; }
+.rating-btn.active { border-color: var(--amber); background: var(--amber-dim); color: var(--gold); font-weight: 700;}
+.notes-text { width: 100%; background: var(--gold-15); border: 1px solid var(--gold-25); border-radius: 10px; padding: 10px; color: var(--gold); margin-bottom: 16px; resize: none; }
+.notes-actions { display: flex; gap: 12px; }
+.btn-save-note { flex: 1; padding: 12px; border-radius: 10px; background: var(--amber); color: #fff; font-weight: 700; }
+.btn-skip-note { padding: 12px 20px; border-radius: 10px; background: var(--gold-15); color: var(--gold-60); }
+
+/* ── Footer & Modals ─────────────────────────────────── */
+.footer-row { display: flex; align-items: center; justify-content: center; gap: 16px; width: 100%; max-width: 420px; margin-bottom: 8px;}
+.footer-btn { font-size: 13px; color: var(--gold-60); padding: 8px 16px; border-radius: 20px; background: var(--card-bg); border: 1px solid var(--card-border); }
+.version { font-size: 11px; color: var(--gold-45); }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 5000; }
+.modal-card { width: 90%; max-width: 400px; background: var(--bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 24px; max-height: 80vh; display: flex; flex-direction: column; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.modal-title { font-size: 18px; color: var(--gold); }
+.modal-close { font-size: 20px; color: var(--gold-60); }
+.modal-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.empty-state { text-align: center; color: var(--gold-45); font-size: 14px; padding: 20px; }
+.btn-clear-history, .btn-save-fav { margin-top: 16px; padding: 12px; border-radius: 12px; background: var(--gold-15); color: var(--gold); width: 100%; font-weight: 700; }
+.btn-clear-history { color: var(--red); }
+
+/* History & Fav Items */
+.log-item { background: var(--card-bg); border: 1px solid var(--gold-15); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center;}
+.log-title { font-size: 14px; color: var(--gold); font-weight: 700;}
+.log-sub { font-size: 11px; color: var(--gold-45); margin-top: 4px;}
+.log-rating { font-size: 16px; }
+.log-actions { display: flex; gap: 8px; }
+.log-btn { padding: 6px; font-size: 12px; color: var(--gold-60); background: var(--gold-15); border-radius: 6px; }
+
+/* Recipe Editor Panel (simplified for space) */
+.recipe-panel { background: var(--gold-15); border-radius: 12px; padding: 16px; margin-top: 10px; }
+.recipe-textarea { width: 100%; background: var(--bg); border: 1px solid var(--gold-25); border-radius: 8px; padding: 8px; color: var(--gold); resize: vertical; margin-bottom: 8px; }
+.recipe-parse-btn { width: 100%; padding: 10px; border-radius: 8px; background: var(--amber); color: white; font-weight: 700; }
