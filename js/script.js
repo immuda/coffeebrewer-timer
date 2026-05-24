@@ -106,6 +106,14 @@ function vibrate(ms) {
   if (navigator.vibrate) navigator.vibrate(ms);
 }
 
+// --- HTML Escaping Utility ---
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>'"]/g, 
+    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+  );
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // --- Init App ---
   setTimeout(() => {
@@ -227,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Roast age mapping
-    if (bean.roastDate) {
+    if (bean.roastDate && !isNaN(new Date(bean.roastDate).getTime())) {
       const ageDays = Math.round((Date.now() - new Date(bean.roastDate)) / (1000 * 60 * 60 * 24));
       if (ageDays <= 7) {
         recs.bloomDuration = 50; // Fresher, needs more degassing
@@ -521,8 +529,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Keyboard Shortcuts
   document.addEventListener('keydown', (e) => {
     if(document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT') return;
-    // Disable shortcuts if forms are visible in Beans or Recipes
-    if (!$('bean-form-view').hidden || !$('recipe-form-view').hidden) return;
+    // Only allow hotkeys on the main timer tab
+    if (activeTab !== 'timer') return;
     if(e.code === 'Space') { e.preventDefault(); $('btn-start').click(); }
     if(e.code === 'KeyR') { $('btn-reset').click(); }
   });
@@ -674,24 +682,24 @@ document.addEventListener('DOMContentLoaded', () => {
       else if (b.roast.toLowerCase().includes('dark')) badgeClass = 'roast-dark';
       
       let details = [];
-      if (b.origin) details.push(b.origin);
+      if (b.origin) details.push(escapeHTML(b.origin));
       if (b.roastDate) {
         const age = Math.round((Date.now() - new Date(b.roastDate)) / (1000 * 60 * 60 * 24));
         const ageText = age === 0 ? 'today' : age === 1 ? 'yesterday' : `${age} days ago`;
-        details.push(`Roasted ${b.roastDate} (${ageText})`);
+        details.push(`Roasted ${escapeHTML(b.roastDate)} (${ageText})`);
       }
       
       card.innerHTML = `
         <div class="bean-card-header">
           <div class="bean-card-title-group">
-            <span class="bean-card-roaster">${b.roaster}</span>
-            <span class="bean-card-title">${b.name}</span>
+            <span class="bean-card-roaster">${escapeHTML(b.roaster)}</span>
+            <span class="bean-card-title">${escapeHTML(b.name)}</span>
           </div>
-          <span class="bean-card-badge ${badgeClass}">${b.roast}</span>
+          <span class="bean-card-badge ${badgeClass}">${escapeHTML(b.roast)}</span>
         </div>
         
         ${details.length > 0 ? `<div class="bean-card-meta">${details.join(' · ')}</div>` : ''}
-        ${b.notes ? `<div class="bean-card-notes">“${b.notes}”</div>` : ''}
+        ${b.notes ? `<div class="bean-card-notes">“${escapeHTML(b.notes)}”</div>` : ''}
         
         <div class="bean-card-progress">
           <div class="bean-card-progress-text">
@@ -775,8 +783,8 @@ document.addEventListener('DOMContentLoaded', () => {
       b.innerHTML = favorites.map((f, i) => `
         <div class="log-item">
           <div>
-            <div class="log-title">${f.name}</div>
-            <div class="log-sub">${allMethods().find(m=>m.id===f.method)?.name || 'Custom'} · ${f.grams}g</div>
+            <div class="log-title">${escapeHTML(f.name)}</div>
+            <div class="log-sub">${escapeHTML(allMethods().find(m=>m.id===f.method)?.name || 'Custom')} · ${f.grams}g</div>
           </div>
           <div class="log-actions">
             <button class="log-btn" onclick="window.loadFav(${i})">Load</button>
@@ -827,8 +835,8 @@ document.addEventListener('DOMContentLoaded', () => {
       list.innerHTML = customRecipes.map(r => `
         <div class="log-item">
           <div>
-            <div class="log-title">${r.name}</div>
-            <div class="log-sub">${r.stages.length} stages · Ratio 1:${r.ratio} · Temp ${r.temp}</div>
+            <div class="log-title">${escapeHTML(r.name)}</div>
+            <div class="log-sub">${r.stages.length} stages · Ratio 1:${r.ratio} · Temp ${escapeHTML(r.temp)}</div>
           </div>
           <div class="log-actions">
             <button class="log-btn" onclick="window.loadCustomRecipe('${r.id}')">Load</button>
@@ -1122,10 +1130,10 @@ document.addEventListener('DOMContentLoaded', () => {
       b.innerHTML = history.map(h => `
         <div class="log-item">
           <div>
-            <div class="log-title">${h.method} — ${h.grams}g</div>
+            <div class="log-title">${escapeHTML(h.method)} — ${h.grams}g</div>
             <div class="log-sub">${new Date(h.date).toLocaleDateString()} · 1:${h.ratio}</div>
-            ${h.beanName ? `<div class="log-sub" style="font-weight:700; color:var(--amber)">🫘 ${h.beanName}</div>` : ''}
-            ${h.note ? `<div class="log-sub" style="font-style:italic">"${h.note}"</div>` : ''}
+            ${h.beanName ? `<div class="log-sub" style="font-weight:700; color:var(--amber)">🫘 ${escapeHTML(h.beanName)}</div>` : ''}
+            ${h.note ? `<div class="log-sub" style="font-style:italic">"${escapeHTML(h.note)}"</div>` : ''}
           </div>
           <div class="log-rating">${h.rating==='sour'?'😖':h.rating==='balanced'?'😊':h.rating==='bitter'?'😣':'☕'}</div>
         </div>

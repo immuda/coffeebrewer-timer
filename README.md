@@ -1,4 +1,4 @@
-# The Brew Timer v2.3
+# The Brew Timer v2.4
 
 A premium, offline-capable Progressive Web App (PWA) designed to perfect your coffee brewing process.
 
@@ -16,6 +16,16 @@ A premium, offline-capable Progressive Web App (PWA) designed to perfect your co
 - **Favorites:** Save your tweaked recipes to a favorites list for one-click loading.
 - **Dark & Light Modes:** A gorgeous, glassmorphic UI that adapts to your preference.
 - **Haptics & Audio:** Subtle vibrations on mobile and elegant chime alerts on stage transitions.
+
+## Recent Updates (v2.4)
+
+- **Sanitization & Hardening:** Integrated HTML entity escaping to prevent DOM-based XSS/layout breaks from user-generated text inputs (notes, names).
+- **Date Validation:** Hardened the roast age parser to prevent `NaN` suggestions if dates are incorrectly formed or blank.
+- **Scope Restrictions for Shortcuts:** Bound global Space/R hotkeys exclusively to the active timer view, preventing background operation when modifying inventory or building recipes.
+- **Offline Error Handling:** Added fallback catch handling in the Service Worker to avoid uncaught promise rejections on network disconnect.
+- **File Changes in this release:**
+  - [js/script.js](file:///home/imran/antigravity/coffeebrewer-timer/js/script.js): Added input serialization function, applied tags protection to history and inventory renders, verified date timestamps, and added tab conditions to key listeners.
+  - [sw.js](file:///home/imran/antigravity/coffeebrewer-timer/sw.js): Added network failure catch blocks and bumped cache version to v2.4.
 
 ## Recent Updates (v2.3)
 

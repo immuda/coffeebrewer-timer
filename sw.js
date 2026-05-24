@@ -1,4 +1,4 @@
-const CACHE = 'brew-timer-v2.3';
+const CACHE = 'brew-timer-v2.4';
 const ASSETS = ['./', './index.html', './css/style.css', './js/script.js', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -21,6 +21,8 @@ self.addEventListener('fetch', e => {
         caches.open(CACHE).then(c => c.put(e.request, clone));
       }
       return res;
+    }).catch(() => {
+      // Silently catch network failures when offline
     }))
   );
 });
