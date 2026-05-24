@@ -801,19 +801,22 @@ document.addEventListener('DOMContentLoaded', () => {
     render();
   };
 
-  $('btn-save-fav').onclick = () => {
-    const name = prompt("Name this recipe:");
-    if(name) {
-      favorites.push({ 
-        name, 
-        method: activeMethod().id, 
-        grams 
-      });
-      localStorage.setItem('brewFavs', JSON.stringify(favorites));
-      render();
-      showToast('Recipe saved to Favorites!');
-    }
-  };
+  const btnSaveFav = $('btn-save-fav');
+  if (btnSaveFav) {
+    btnSaveFav.onclick = () => {
+      const name = prompt("Name this recipe:");
+      if(name) {
+        favorites.push({ 
+          name, 
+          method: activeMethod().id, 
+          grams 
+        });
+        localStorage.setItem('brewFavs', JSON.stringify(favorites));
+        render();
+        showToast('Recipe saved to Favorites!');
+      }
+    };
+  }
 
   // --- Custom Recipes list and creation ---
   function renderCustomRecipesList() {
