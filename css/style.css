@@ -231,4 +231,181 @@ kbd { background: var(--gold-15); padding: 2px 6px; border-radius: 4px; border: 
 .log-actions { display: flex; gap: 8px; }
 .log-btn { padding: 6px; font-size: 12px; color: var(--gold-60); background: var(--gold-15); border-radius: 6px; }
 
+/* ── Coffee Beans Section & Selector ─────────────────── */
+.beans-select-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.beans-status { font-size: 12px; color: var(--gold-60); }
+.bean-select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--gold-15);
+  background: var(--gold-15);
+  color: var(--gold);
+  font-family: var(--sans);
+  font-size: 13px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e8c99a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+  padding-right: 40px;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+[data-theme="light"] .bean-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235c3a21' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+.bean-select:focus {
+  border-color: var(--amber);
+  background-color: var(--amber-dim);
+}
+.bean-warning {
+  color: var(--red);
+  font-size: 11px;
+  margin-top: 6px;
+  font-weight: 700;
+}
+
+/* ── Coffee Beans List & Cards ───────────────────────── */
+.beans-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+.btn-add-bean-show {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--amber-dim);
+  border: 1px dashed var(--amber);
+  color: var(--gold);
+  width: 100%;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+.btn-add-bean-show:hover {
+  background: var(--amber);
+  color: #fff;
+  border-style: solid;
+}
+
+.bean-card {
+  background: var(--card-bg);
+  border: 1px solid var(--gold-15);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  transition: border-color 0.2s;
+}
+.bean-card:hover {
+  border-color: var(--amber-glow);
+}
+.bean-card.finished {
+  opacity: 0.5;
+}
+.bean-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.bean-card-title-group {
+  display: flex;
+  flex-direction: column;
+}
+.bean-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.bean-card-roaster {
+  font-size: 11px;
+  color: var(--gold-60);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.bean-card-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  background: var(--gold-15);
+  color: var(--gold);
+}
+.bean-card-badge.roast-light { background: rgba(232, 201, 154, 0.15); color: #e8c99a; }
+.bean-card-badge.roast-medium { background: rgba(200, 130, 60, 0.15); color: #c8823c; }
+.bean-card-badge.roast-dark { background: rgba(92, 58, 33, 0.3); color: #b0631c; }
+[data-theme="dark"] .bean-card-badge.roast-dark { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+.bean-card-meta {
+  font-size: 12px;
+  color: var(--gold-60);
+  line-height: 1.4;
+}
+.bean-card-notes {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--gold-45);
+  margin-top: 2px;
+}
+
+.bean-card-progress {
+  margin-top: 4px;
+}
+.bean-card-progress-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--gold-60);
+  margin-bottom: 4px;
+}
+.bean-progress-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--gold-15);
+  overflow: hidden;
+}
+.bean-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber-glow), var(--amber));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.bean-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+  border-top: 1px solid var(--gold-15);
+  padding-top: 10px;
+}
+
+/* ── Add/Edit Bean Form ──────────────────────────────── */
+.form-title { font-size: 16px; color: var(--gold); margin-bottom: 16px; font-family: var(--serif); text-align: center; }
+.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.form-group label { font-size: 11px; color: var(--gold-60); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group select {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--gold-25);
+  background: var(--gold-15);
+  color: var(--gold);
+  font-size: 13px;
+  width: 100%;
+}
+.form-group input:focus, .form-group select:focus {
+  border-color: var(--amber);
+  background: var(--amber-dim);
+}
+.form-row { display: flex; gap: 12px; }
+.form-row .form-group { flex: 1; min-width: 0; }
+
+.form-actions { display: flex; gap: 12px; margin-top: 16px; }
+.btn-cancel-bean { flex: 1; padding: 12px; border-radius: 10px; background: var(--gold-15); color: var(--gold-60); font-weight: 700; transition: background 0.2s; }
+.btn-cancel-bean:hover { background: rgba(255,255,255,0.05); }
+.btn-save-bean { flex: 1; padding: 12px; border-radius: 10px; background: var(--amber); color: #fff; font-weight: 700; transition: background 0.2s; }
+.btn-save-bean:hover { background: #b0631c; }
+
+
 

@@ -120,6 +120,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let interval = null, prevStageIdx = -1, timerStartTime = 0;
   let history = JSON.parse(localStorage.getItem('brewHistory') || '[]');
   let favorites = JSON.parse(localStorage.getItem('brewFavs') || '[]');
+  let beans = JSON.parse(localStorage.getItem('brewBeans') || '[]');
+  let selectedBeanId = '';
   let currentNoteRating = '';
   
   // Theme
@@ -211,6 +213,43 @@ document.addEventListener('DOMContentLoaded', () => {
     animateWater(w);
     $('ratio-display').textContent = `1:${m.ratio}`;
     $('tip-text').innerHTML = `Temp: <strong>${m.temp||'—'}</strong> · Grind: <strong>${m.grind||'—'}</strong>`;
+
+    // Coffee Bean Selector update
+    const beanSelect = $('bean-select');
+    const curSel = selectedBeanId;
+    beanSelect.innerHTML = '<option value="">Generic / No Specific Bean</option>';
+    const activeBeans = beans.filter(b => !b.finished);
+    activeBeans.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.id;
+      opt.textContent = `${b.roaster} - ${b.name} (${b.weight}g left)`;
+      if (b.id === curSel) opt.selected = true;
+      beanSelect.appendChild(opt);
+    });
+    
+    const activeSelected = activeBeans.find(b => b.id === curSel);
+    if (!activeSelected) {
+      selectedBeanId = '';
+      beanSelect.value = '';
+    } else {
+      selectedBeanId = curSel;
+      beanSelect.value = curSel;
+    }
+
+    const selectedBean = beans.find(b => b.id === selectedBeanId);
+    if (selectedBean) {
+      $('beans-status').textContent = `(${selectedBean.weight}g remaining)`;
+      if (grams > selectedBean.weight) {
+        $('bean-warning').hidden = false;
+        $('bean-warning').textContent = `⚠️ Warning: Only ${selectedBean.weight}g left in this bag!`;
+      } else {
+        $('bean-warning').hidden = true;
+      }
+    } else {
+      $('beans-status').textContent = '';
+      $('bean-warning').hidden = true;
+    }
+
 
     if(running) {
       $('poured-row').hidden = false;
@@ -370,10 +409,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if(document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
     // Prevent timer keyboard shortcuts when modals are open
-    if (!$('history-modal').hidden || !$('favorites-modal').hidden) return;
+    if (!$('history-modal').hidden || !$('favorites-modal').hidden || !$('beans-modal').hidden) return;
     if(e.code === 'Space') { e.preventDefault(); $('btn-start').click(); }
     if(e.code === 'KeyR') { $('btn-reset').click(); }
   });
+
+  // Bean Selector change handler
+  $('bean-select').onchange = (e) => {
+    selectedBeanId = e.target.value;
+    render(true);
+  };
 
   // --- Notes & History ---
   document.querySelectorAll('.rating-btn').forEach(btn => {
@@ -385,6 +430,21 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   
   $('btn-save-note').onclick = () => {
+    let savedBeanName = null;
+    if (selectedBeanId) {
+      const bean = beans.find(b => b.id === selectedBeanId);
+      if (bean) {
+        bean.weight = Math.max(0, bean.weight - grams);
+        savedBeanName = `${bean.roaster} - ${bean.name}`;
+        if (bean.weight <= 0) {
+          bean.finished = true; // Auto-archive when out of beans
+          showToast(`Finished your bag of ${bean.name}!`);
+        } else {
+          showToast(`Deducted ${grams}g from ${bean.name} (${bean.weight}g left)`);
+        }
+        localStorage.setItem('brewBeans', JSON.stringify(beans));
+      }
+    }
     const entry = {
       date: new Date().toISOString(),
       method: activeMethod().name,
@@ -392,12 +452,16 @@ document.addEventListener('DOMContentLoaded', () => {
       water: water(),
       ratio: activeMethod().ratio,
       rating: currentNoteRating,
-      note: $('notes-text').value
+      note: $('notes-text').value,
+      beanId: selectedBeanId || null,
+      beanName: savedBeanName
     };
     history.unshift(entry);
     localStorage.setItem('brewHistory', JSON.stringify(history));
     $('brew-notes-card').hidden = true;
-    showToast('Saved to history!');
+    if (!savedBeanName) {
+      showToast('Saved to history!');
+    }
     render();
   };
   
@@ -434,6 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div>
             <div class="log-title">${h.method} — ${h.grams}g</div>
             <div class="log-sub">${new Date(h.date).toLocaleDateString()} · 1:${h.ratio}</div>
+            ${h.beanName ? `<div class="log-sub" style="font-weight:700; color:var(--amber)">🫘 ${h.beanName}</div>` : ''}
             ${h.note ? `<div class="log-sub" style="font-style:italic">"${h.note}"</div>` : ''}
           </div>
           <div class="log-rating">${h.rating==='sour'?'😖':h.rating==='balanced'?'😊':h.rating==='bitter'?'😣':'☕'}</div>
@@ -474,6 +539,218 @@ document.addEventListener('DOMContentLoaded', () => {
     favorites.splice(i, 1);
     localStorage.setItem('brewFavs', JSON.stringify(favorites));
     render();
+  };
+
+  // --- Coffee Beans Modal & Form Management ---
+  
+  // Show / Close Modal
+  $('btn-beans').onclick = () => {
+    $('beans-modal').hidden = false;
+    $('beans-list-view').hidden = false;
+    $('bean-form-view').hidden = true;
+    renderBeans();
+  };
+  $('beans-close').onclick = () => {
+    $('beans-modal').hidden = true;
+  };
+  
+  // Show Add Form
+  $('btn-add-bean-show').onclick = () => {
+    $('bean-form-title').textContent = 'Add Coffee Bean';
+    $('form-bean-id').value = '';
+    $('bean-form').reset();
+    // Pre-fill today's date for convenience
+    $('input-roast-date').value = new Date().toISOString().split('T')[0];
+    $('input-bag-size').value = 250;
+    $('input-weight').value = 250;
+    
+    $('beans-list-view').hidden = true;
+    $('bean-form-view').hidden = false;
+  };
+  
+  // Cancel Form
+  $('btn-cancel-bean').onclick = () => {
+    $('bean-form-view').hidden = true;
+    $('beans-list-view').hidden = false;
+  };
+  
+  // Save Bean Bag (both Add and Edit)
+  $('btn-save-bean').onclick = () => {
+    const roaster = $('input-roaster').value.trim();
+    const name = $('input-name').value.trim();
+    const origin = $('input-origin').value.trim();
+    const roast = $('input-roast').value;
+    const roastDate = $('input-roast-date').value;
+    const bagSize = parseInt($('input-bag-size').value) || 250;
+    const weight = parseInt($('input-weight').value) || 0;
+    const notes = $('input-notes').value.trim();
+    const id = $('form-bean-id').value;
+    
+    if (!roaster || !name) {
+      showToast('Please fill out Roaster and Bean Name!');
+      return;
+    }
+    
+    if (id) {
+      // Edit mode
+      const b = beans.find(x => x.id === id);
+      if (b) {
+        b.roaster = roaster;
+        b.name = name;
+        b.origin = origin;
+        b.roast = roast;
+        b.roastDate = roastDate;
+        b.bagSize = bagSize;
+        b.weight = weight;
+        b.notes = notes;
+        showToast('Bean details updated!');
+      }
+    } else {
+      // Create mode
+      const newBean = {
+        id: 'bean_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        roaster,
+        name,
+        origin,
+        roast,
+        roastDate,
+        bagSize,
+        weight,
+        notes,
+        finished: false
+      };
+      beans.push(newBean);
+      showToast('New coffee bag registered!');
+    }
+    
+    localStorage.setItem('brewBeans', JSON.stringify(beans));
+    $('bean-form-view').hidden = true;
+    $('beans-list-view').hidden = false;
+    renderBeans();
+    render();
+  };
+
+  // Render Beans List in Modal
+  function renderBeans() {
+    const list = $('beans-list');
+    list.innerHTML = '';
+    
+    if (beans.length === 0) {
+      list.innerHTML = '<p class="empty-state">No coffee beans added yet. Start by adding a bag!</p>';
+      return;
+    }
+    
+    // Sort: Active first, then Finished
+    const sorted = [...beans].sort((x, y) => {
+      if (x.finished === y.finished) return y.id.localeCompare(x.id); // newer first
+      return x.finished ? 1 : -1;
+    });
+    
+    sorted.forEach(b => {
+      const card = document.createElement('div');
+      card.className = 'bean-card' + (b.finished ? ' finished' : '');
+      
+      const pct = Math.min(100, Math.max(0, Math.round((b.weight / b.bagSize) * 100)));
+      
+      let badgeClass = 'roast-medium';
+      if (b.roast.toLowerCase().includes('light')) badgeClass = 'roast-light';
+      else if (b.roast.toLowerCase().includes('dark')) badgeClass = 'roast-dark';
+      
+      let details = [];
+      if (b.origin) details.push(b.origin);
+      if (b.roastDate) {
+        const age = Math.round((Date.now() - new Date(b.roastDate)) / (1000 * 60 * 60 * 24));
+        const ageText = age === 0 ? 'today' : age === 1 ? 'yesterday' : `${age} days ago`;
+        details.push(`Roasted ${b.roastDate} (${ageText})`);
+      }
+      
+      card.innerHTML = `
+        <div class="bean-card-header">
+          <div class="bean-card-title-group">
+            <span class="bean-card-roaster">${b.roaster}</span>
+            <span class="bean-card-title">${b.name}</span>
+          </div>
+          <span class="bean-card-badge ${badgeClass}">${b.roast}</span>
+        </div>
+        
+        ${details.length > 0 ? `<div class="bean-card-meta">${details.join(' · ')}</div>` : ''}
+        ${b.notes ? `<div class="bean-card-notes">“${b.notes}”</div>` : ''}
+        
+        <div class="bean-card-progress">
+          <div class="bean-card-progress-text">
+            <span>Remaining</span>
+            <span>${b.weight}g / ${b.bagSize}g (${pct}%)</span>
+          </div>
+          <div class="bean-progress-track">
+            <div class="bean-progress-fill" style="width: ${pct}%"></div>
+          </div>
+        </div>
+        
+        <div class="bean-card-actions">
+          ${!b.finished ? `<button class="log-btn" style="color:var(--green)" onclick="window.useBean('${b.id}')">Select</button>` : ''}
+          <button class="log-btn" onclick="window.editBean('${b.id}')">Edit</button>
+          <button class="log-btn" onclick="window.toggleArchiveBean('${b.id}')">${b.finished ? 'Reopen' : 'Archive'}</button>
+          <button class="log-btn" style="color:var(--red)" onclick="window.deleteBean('${b.id}')">✕</button>
+        </div>
+      `;
+      
+      list.appendChild(card);
+    });
+  }
+  
+  // Actions exposed to window
+  window.useBean = (id) => {
+    selectedBeanId = id;
+    $('beans-modal').hidden = true;
+    render();
+    showToast('Coffee bean selected!');
+  };
+  
+  window.editBean = (id) => {
+    const b = beans.find(x => x.id === id);
+    if (b) {
+      $('bean-form-title').textContent = 'Edit Coffee Bean';
+      $('form-bean-id').value = b.id;
+      $('input-roaster').value = b.roaster;
+      $('input-name').value = b.name;
+      $('input-origin').value = b.origin || '';
+      $('input-roast').value = b.roast;
+      $('input-roast-date').value = b.roastDate || '';
+      $('input-bag-size').value = b.bagSize;
+      $('input-weight').value = b.weight;
+      $('input-notes').value = b.notes || '';
+      
+      $('beans-list-view').hidden = true;
+      $('bean-form-view').hidden = false;
+    }
+  };
+  
+  window.toggleArchiveBean = (id) => {
+    const b = beans.find(x => x.id === id);
+    if (b) {
+      b.finished = !b.finished;
+      if (b.finished && selectedBeanId === id) {
+        selectedBeanId = ''; // deselect if archived
+      }
+      localStorage.setItem('brewBeans', JSON.stringify(beans));
+      showToast(b.finished ? 'Coffee bag archived!' : 'Coffee bag restored!');
+      renderBeans();
+      render();
+    }
+  };
+  
+  window.deleteBean = (id) => {
+    if (confirm("Delete this coffee bag? This cannot be undone.")) {
+      const idx = beans.findIndex(x => x.id === id);
+      if (idx !== -1) {
+        beans.splice(idx, 1);
+        if (selectedBeanId === id) selectedBeanId = '';
+        localStorage.setItem('brewBeans', JSON.stringify(beans));
+        showToast('Coffee bag deleted!');
+        renderBeans();
+        render();
+      }
+    }
   };
 
   // Initial render

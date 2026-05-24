@@ -84,6 +84,18 @@
                 </div>
             </div>
 
+            <!-- Coffee Beans Selector -->
+            <div class="section" id="section-beans-select">
+                <div class="beans-select-header">
+                    <label class="section-label" for="bean-select" style="margin-bottom:0">Coffee Bean</label>
+                    <span class="beans-status" id="beans-status"></span>
+                </div>
+                <select id="bean-select" class="bean-select">
+                    <option value="">Generic / No Specific Bean</option>
+                </select>
+                <div class="bean-warning" id="bean-warning" hidden>⚠️ Not enough coffee remaining!</div>
+            </div>
+
             <!-- Water Suggestion -->
             <div class="water-box" id="water-box">
                 <div class="water-bg-icon">💧</div>
@@ -171,6 +183,7 @@
         <div class="footer-row">
             <button class="footer-btn" id="btn-history" title="Brew history">📜 History</button>
             <button class="footer-btn" id="btn-favorites" title="Saved recipes">⭐ Favorites</button>
+            <button class="footer-btn" id="btn-beans" title="Coffee Beans Inventory">🫘 Beans</button>
             <p class="version">v2.1.0</p>
         </div>
 
@@ -201,6 +214,88 @@
                 <p class="empty-state">No favorites saved yet.</p>
             </div>
             <button class="btn-save-fav" id="btn-save-fav">+ Save Current Recipe</button>
+        </div>
+    </div>
+
+    <!-- ── COFFEE BEANS MODAL ──────────────────────── -->
+    <div class="modal-overlay" id="beans-modal" hidden>
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="modal-title">🫘 Coffee Beans</h2>
+                <button class="modal-close" id="beans-close">✕</button>
+            </div>
+            
+            <div class="modal-body" id="beans-modal-body">
+                <!-- Beans list view -->
+                <div id="beans-list-view">
+                    <div class="beans-list" id="beans-list">
+                        <p class="empty-state">No coffee beans added yet.</p>
+                    </div>
+                    <button class="btn-add-bean-show" id="btn-add-bean-show">+ Add New Bean Bag</button>
+                </div>
+
+                <!-- Add/Edit Bean Form view (hidden by default) -->
+                <div id="bean-form-view" hidden>
+                    <h3 class="form-title" id="bean-form-title">Add Coffee Bean</h3>
+                    <form id="bean-form" onsubmit="return false;">
+                        <input type="hidden" id="form-bean-id">
+                        
+                        <div class="form-group">
+                            <label for="input-roaster">Roaster</label>
+                            <input type="text" id="input-roaster" placeholder="e.g. Onyx Coffee Lab" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="input-name">Bean Name</label>
+                            <input type="text" id="input-name" placeholder="e.g. Monarch" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="input-origin">Origin</label>
+                                <input type="text" id="input-origin" placeholder="e.g. Colombia">
+                            </div>
+                            <div class="form-group">
+                                <label for="input-roast">Roast Level</label>
+                                <select id="input-roast">
+                                    <option value="Light">Light</option>
+                                    <option value="Medium-Light">Medium-Light</option>
+                                    <option value="Medium" selected>Medium</option>
+                                    <option value="Medium-Dark">Medium-Dark</option>
+                                    <option value="Dark">Dark</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="input-roast-date">Roast Date</label>
+                                <input type="date" id="input-roast-date">
+                            </div>
+                            <div class="form-group">
+                                <label for="input-bag-size">Bag Size (g)</label>
+                                <input type="number" id="input-bag-size" value="250" min="1" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="input-weight">Current Weight (g)</label>
+                                <input type="number" id="input-weight" value="250" min="0" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="input-notes">Tasting Notes</label>
+                                <input type="text" id="input-notes" placeholder="e.g. Berries, Chocolate">
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn-cancel-bean" id="btn-cancel-bean">Cancel</button>
+                            <button type="button" class="btn-save-bean" id="btn-save-bean">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
