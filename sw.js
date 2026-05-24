@@ -1,4 +1,4 @@
-const CACHE = 'brew-timer-v2';
+const CACHE = 'brew-timer-v2.1';
 const ASSETS = ['./', './index.html', './css/style.css', './js/script.js', './manifest.json'];
 
 self.addEventListener('install', e => {

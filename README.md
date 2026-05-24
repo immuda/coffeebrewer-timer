@@ -1,4 +1,4 @@
-# The Brew Timer v2.0
+# The Brew Timer v2.1
 
 A premium, offline-capable Progressive Web App (PWA) designed to perfect your coffee brewing process.
 
@@ -12,6 +12,14 @@ A premium, offline-capable Progressive Web App (PWA) designed to perfect your co
 - **Favorites:** Save your tweaked recipes to a favorites list for one-click loading.
 - **Dark & Light Modes:** A gorgeous, glassmorphic UI that adapts to your preference.
 - **Haptics & Audio:** Subtle vibrations on mobile and elegant chime alerts on stage transitions.
+
+## Recent Updates (v2.1)
+
+- **PWA Offline Support:** Registered the service worker correctly so the app can be cached and run offline.
+- **Background Resiliency:** Refactored the timer calculations to use a date-difference system (`Date.now() - timerStartTime`), protecting the countdown from lagging due to browser tab background throttling.
+- **Audio Context Management:** Integrated a reusable singleton `AudioContext` to prevent context leak warnings or crashes.
+- **Keyboard Shortcut Improvements:** Disabled global hotkeys (e.g., Spacebar and R) when history or favorites modals are active.
+- **Code Cleanups:** Removed dangling references and unused styles for the uncompleted AI parser feature.
 
 ## Project Structure
 
