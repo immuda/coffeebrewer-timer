@@ -34,9 +34,16 @@ const METHODS = [
 ];
 
 // --- Audio ---
+let audioCtx = null;
 function beep(type){
   try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    if (!audioCtx) {
+      audioCtx = new(window.AudioContext||window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    const ctx = audioCtx;
     const C={start:[[520,.12,0],[660,.14,.14]],stage:[[880,.1,0],[880,.1,.15],[1100,.15,.3]],warning:[[660,.08,0],[660,.08,.1]],done:[[523,.15,0],[659,.15,.18],[784,.25,.36]]};
     (C[type]||C.stage).forEach(([f,d,t])=>{
       const o=ctx.createOscillator(),g=ctx.createGain();
@@ -110,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- State ---
   let grams = 20, method = METHODS[0], bloomOn = true, soundOn = true, countdown = false;
   let running = false, elapsed = 0, stageIdx = 0, stageElapsed = 0, done = false;
-  let interval = null, prevStageIdx = -1;
+  let interval = null, prevStageIdx = -1, timerStartTime = 0;
   let history = JSON.parse(localStorage.getItem('brewHistory') || '[]');
   let favorites = JSON.parse(localStorage.getItem('brewFavs') || '[]');
   let currentNoteRating = '';
@@ -282,8 +289,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Engine ---
   function tick() {
-    elapsed++;
+    if (!running) return;
+    const currentElapsed = Math.floor((Date.now() - timerStartTime) / 1000);
+    if (currentElapsed === elapsed) return; // skip redundant tick calls
+    
+    elapsed = currentElapsed;
     if(elapsed >= totalTime()) {
+      elapsed = totalTime(); // cap at total time
       clearInterval(interval); running = false; done = true;
       if(soundOn) beep('done');
       vibrate(500);
@@ -313,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   function reset() {
-    clearInterval(interval); running = false; elapsed = 0; stageIdx = 0; stageElapsed = 0; done = false; prevStageIdx = -1;
+    clearInterval(interval); running = false; elapsed = 0; stageIdx = 0; stageElapsed = 0; done = false; prevStageIdx = -1; timerStartTime = 0;
     $('brew-notes-card').hidden = true;
     currentNoteRating = '';
     $('notes-text').value = '';
@@ -348,7 +360,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if(done) return;
     if(!running) {
       if(elapsed === 0 && soundOn) beep('start');
-      running = true; interval = setInterval(tick, 1000);
+      timerStartTime = Date.now() - elapsed * 1000;
+      running = true; interval = setInterval(tick, 200); // Check every 200ms for high responsiveness
     } else { clearInterval(interval); running = false; }
     render(true);
   };
@@ -356,6 +369,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Keyboard Shortcuts
   document.addEventListener('keydown', (e) => {
     if(document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+    // Prevent timer keyboard shortcuts when modals are open
+    if (!$('history-modal').hidden || !$('favorites-modal').hidden) return;
     if(e.code === 'Space') { e.preventDefault(); $('btn-start').click(); }
     if(e.code === 'KeyR') { $('btn-reset').click(); }
   });
@@ -464,3 +479,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initial render
   render();
 });
+
+// --- Register Service Worker ---
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('Service Worker registered!', reg.scope))
+      .catch(err => console.error('Service Worker registration failed:', err));
+  });
+}

@@ -231,7 +231,4 @@ kbd { background: var(--gold-15); padding: 2px 6px; border-radius: 4px; border: 
 .log-actions { display: flex; gap: 8px; }
 .log-btn { padding: 6px; font-size: 12px; color: var(--gold-60); background: var(--gold-15); border-radius: 6px; }
 
-/* Recipe Editor Panel (simplified for space) */
-.recipe-panel { background: var(--gold-15); border-radius: 12px; padding: 16px; margin-top: 10px; }
-.recipe-textarea { width: 100%; background: var(--bg); border: 1px solid var(--gold-25); border-radius: 8px; padding: 8px; color: var(--gold); resize: vertical; margin-bottom: 8px; }
-.recipe-parse-btn { width: 100%; padding: 10px; border-radius: 8px; background: var(--amber); color: white; font-weight: 700; }
+
