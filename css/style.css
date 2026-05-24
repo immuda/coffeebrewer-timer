@@ -407,5 +407,141 @@ kbd { background: var(--gold-15); padding: 2px 6px; border-radius: 4px; border: 
 .btn-save-bean { flex: 1; padding: 12px; border-radius: 10px; background: var(--amber); color: #fff; font-weight: 700; transition: background 0.2s; }
 .btn-save-bean:hover { background: #b0631c; }
 
+/* ── Tab Layout & Navigation ─────────────────────────── */
+.page { padding-bottom: 90px; } /* Leave room for sticky tab bar */
+.view-container { width: 100%; display: flex; flex-direction: column; align-items: center; }
+.view-section { width: 100%; display: flex; flex-direction: column; align-items: center; }
+.view-title { font-family: var(--serif); font-size: 22px; color: var(--gold); text-align: center; margin-bottom: 20px; letter-spacing: 0.05em; text-shadow: 0 2px 10px var(--amber-glow); }
+.sub-label-heading { display: block; color: var(--gold-60); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px; font-weight: 700; border-bottom: 1px dashed var(--gold-25); padding-bottom: 6px; }
 
+.nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 420px;
+  background: var(--card-bg);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--card-border);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 8px 12px 14px 12px; /* Extra bottom padding for iPhone home indicators */
+  z-index: 4000;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  box-shadow: 0 -8px 30px rgba(0,0,0,0.5);
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--gold-45);
+  font-size: 10px;
+  font-family: var(--sans);
+  font-weight: 700;
+  transition: all 0.2s;
+  flex: 1;
+  padding: 4px 0;
+}
+.nav-item:hover {
+  color: var(--gold-60);
+}
+.nav-item.active {
+  color: var(--amber);
+  transform: translateY(-2px);
+}
+.nav-icon {
+  font-size: 18px;
+}
+.nav-item.active .nav-icon {
+  text-shadow: 0 0 10px var(--amber-glow);
+}
 
+/* ── Advanced Stats Dashboard ────────────────────────── */
+.stats-dashboard { display: flex; flex-direction: column; gap: 16px; background: rgba(0,0,0,0.2); border-radius: 16px; padding: 16px; border: 1px solid var(--gold-15); width: 100%; margin-bottom: 16px; }
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.stat-card { background: var(--gold-15); border: 1px solid var(--gold-25); border-radius: 10px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.stat-num { font-family: var(--serif); font-size: 18px; font-weight: 700; color: var(--amber); line-height: 1.2; }
+.stat-unit { font-size: 10px; color: var(--gold-60); margin-left: 1px; font-family: var(--sans); font-weight: 400; }
+.stat-label { font-size: 8px; color: var(--gold-45); text-transform: uppercase; margin-top: 4px; letter-spacing: 0.05em; font-weight: 700; }
+
+.stats-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; width: 100%; }
+.chart-container { background: rgba(255,255,255,0.03); border: 1px solid var(--gold-15); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; align-items: center; width: 100%; }
+.chart-title { font-size: 9px; color: var(--gold-60); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; font-weight: 700; }
+.chart-bar-group { display: flex; justify-content: space-around; align-items: flex-end; height: 100px; width: 100%; border-bottom: 1px solid var(--gold-25); padding-bottom: 4px; gap: 6px; }
+
+.chart-bar-wrap { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; position: relative; min-width: 0; }
+.chart-bar { width: 16px; background: linear-gradient(180deg, var(--amber), var(--amber-dim)); border-radius: 4px 4px 0 0; transition: height 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; cursor: pointer; min-height: 2px; }
+.chart-bar:hover { background: linear-gradient(180deg, var(--gold), var(--amber)); }
+
+/* Tooltip inside bar */
+.chart-bar::after {
+  content: attr(data-count);
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.8);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--gold);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+  background: rgba(0,0,0,0.8);
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid var(--gold-25);
+  z-index: 10;
+}
+.chart-bar:hover::after { opacity: 1; transform: translateX(-50%) scale(1); }
+.chart-bar-label { font-size: 9px; color: var(--gold-45); margin-top: 6px; text-align: center; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; width: 100%; }
+
+/* ── Custom Recipe Builder Form ──────────────────────── */
+.recipes-container { display: flex; flex-direction: column; width: 100%; }
+.recipes-list { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.btn-add-recipe-show {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--amber-dim);
+  border: 1px dashed var(--amber);
+  color: var(--gold);
+  width: 100%;
+  font-weight: 700;
+  transition: all 0.2s;
+  margin-top: 16px;
+}
+.btn-add-recipe-show:hover {
+  background: var(--amber);
+  color: #fff;
+  border-style: solid;
+}
+
+.stages-builder-section { margin-top: 16px; border-top: 1px solid var(--gold-15); padding-top: 16px; width: 100%; }
+.stages-builder-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.stages-total-weight { font-size: 12px; font-weight: 700; color: var(--gold); }
+.stages-total-weight.invalid { color: var(--red); }
+.stages-help-text { font-size: 11px; color: var(--gold-45); margin-bottom: 12px; line-height: 1.4; }
+
+.recipe-stage-row { display: flex; gap: 6px; align-items: center; background: rgba(0,0,0,0.15); border: 1px solid var(--gold-15); border-radius: 10px; padding: 8px; margin-bottom: 8px; width: 100%; }
+.recipe-stage-row input[type="text"] { flex: 2; padding: 6px 8px; font-size: 12px; border-radius: 6px; border: 1px solid var(--gold-25); background: var(--gold-15); color: var(--gold); min-width: 0; }
+.recipe-stage-row input[type="number"] { width: 52px; padding: 6px 4px; font-size: 12px; border-radius: 6px; text-align: center; border: 1px solid var(--gold-25); background: var(--gold-15); color: var(--gold); }
+.recipe-stage-row input:focus { border-color: var(--amber); background: var(--amber-dim); }
+
+.recipe-stage-row .bloom-chk-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 36px; flex-shrink: 0; }
+.recipe-stage-row .bloom-chk-wrapper label { font-size: 8px; color: var(--gold-45); text-transform: uppercase; font-weight: 700; margin: 0; }
+.recipe-stage-row input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--amber); cursor: pointer; }
+
+.btn-stage-delete { width: 26px; height: 26px; border-radius: 50%; color: var(--red); font-size: 14px; display: flex; align-items: center; justify-content: center; background: var(--gold-15); border: 1px solid var(--gold-25); cursor: pointer; flex-shrink: 0; }
+.btn-stage-delete:hover { background: rgba(232, 128, 128, 0.15); border-color: var(--red); }
+
+.btn-recipe-add-stage { padding: 8px 16px; border-radius: 8px; border: 1px dashed var(--gold-45); color: var(--gold-60); font-size: 12px; font-weight: 700; width: 100%; margin-top: 4px; transition: all 0.2s; cursor: pointer; }
+.btn-recipe-add-stage:hover { border-color: var(--amber); color: var(--gold); background: var(--gold-15); }
+
+.form-actions .btn-save-recipe { flex: 1; padding: 12px; border-radius: 10px; background: var(--amber); color: #fff; font-weight: 700; transition: background 0.2s; cursor: pointer; }
+.form-actions .btn-save-recipe:hover { background: #b0631c; }
+.form-actions .btn-cancel-recipe { flex: 1; padding: 12px; border-radius: 10px; background: var(--gold-15); color: var(--gold-60); font-weight: 700; transition: background 0.2s; cursor: pointer; }
+.form-actions .btn-cancel-recipe:hover { background: rgba(255,255,255,0.05); }

@@ -1,5 +1,5 @@
 /* ================================================================
-   The Brew Timer — script.js v2.1.0
+   The Brew Timer — script.js v2.2.0
    ================================================================ */
 
 const METHODS = [
@@ -115,13 +115,20 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 1500);
 
   // --- State ---
-  let grams = 20, method = METHODS[0], bloomOn = true, soundOn = true, countdown = false;
+  let grams = 20, bloomOn = true, soundOn = true, countdown = false;
   let running = false, elapsed = 0, stageIdx = 0, stageElapsed = 0, done = false;
   let interval = null, prevStageIdx = -1, timerStartTime = 0;
+  
   let history = JSON.parse(localStorage.getItem('brewHistory') || '[]');
   let favorites = JSON.parse(localStorage.getItem('brewFavs') || '[]');
   let beans = JSON.parse(localStorage.getItem('brewBeans') || '[]');
+  let customRecipes = JSON.parse(localStorage.getItem('brewCustomRecipes') || '[]');
+  
   let selectedBeanId = '';
+  let activeTab = 'timer'; // timer, beans, recipes, journal
+  
+  // Set up active method
+  let method = METHODS[0];
   let currentNoteRating = '';
   
   // Theme
@@ -137,17 +144,35 @@ document.addEventListener('DOMContentLoaded', () => {
   function fmt(s) { return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
   function activeMethod() { return method; }
   function hasBloom() { return activeMethod().stages.some(s=>s.bloom); }
+  
+  function allMethods() {
+    return [...METHODS, ...customRecipes];
+  }
+
   function activeStages() {
     const m = activeMethod();
-    if(bloomOn || !hasBloom()) return m.stages;
+    let stages = m.stages;
+    
+    // Override bloom stage duration dynamically based on selected bean age recommendations
+    if (selectedBeanId && bloomOn) {
+      const selectedBean = beans.find(b => b.id === selectedBeanId);
+      if (selectedBean) {
+        const rec = getSmartRecommendations(selectedBean);
+        stages = stages.map(s => s.bloom ? { ...s, duration: rec.bloomDuration } : s);
+      }
+    }
+    
+    if (bloomOn || !hasBloom()) return stages;
+    
     let carry = 0, r = [];
-    for(const s of m.stages) {
+    for(const s of stages) {
       if(s.bloom) { carry += s.water; }
       else if(carry > 0 && s.water > 0) { r.push({...s, water: s.water + carry}); carry = 0; }
       else r.push(s);
     }
     return r;
   }
+  
   function totalTime() { return activeStages().reduce((a,s)=>a+s.duration,0); }
   function water() { return grams * activeMethod().ratio; }
 
@@ -163,7 +188,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const step = Math.ceil(Math.abs(diff) / 10) * Math.sign(diff);
     currentWaterDisplay += step;
     
-    // Check if overshot
     if ((step > 0 && currentWaterDisplay > target) || (step < 0 && currentWaterDisplay < target)) {
       currentWaterDisplay = target;
     }
@@ -178,163 +202,243 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Render ---
-  function render(skipStagesReflow = false) {
-    // Method pills
-    pills.innerHTML = '';
-    METHODS.forEach(m => {
-      const b = document.createElement('button');
-      b.className = 'method-pill' + (m.id===method.id ? ' active' : '');
-      b.textContent = m.name;
-      b.onclick = () => { method=m; reset(); render(); };
-      pills.appendChild(b);
-    });
-
-    // Bloom
-    if(!hasBloom()) $('bloom-section').hidden = true;
-    else {
-      $('bloom-section').hidden = false;
-      $('bloom-toggle').className = 'bloom-toggle' + (bloomOn?' on':'');
-      $('bloom-icon-box').textContent = bloomOn?'🌸':'🌾';
-      const bml = Math.round((activeMethod().stages.find(s=>s.bloom)?.water||0)*water());
-      $('bloom-desc').textContent = bloomOn ? `${bml}ml · degasses CO₂` : 'Skipped';
-    }
-
-    // Grams & Quick Dose
-    $('gram-display').innerHTML = grams + '<span class="gram-unit">g</span>';
-    $('gram-slider').value = grams;
-    document.querySelectorAll('.dose-btn').forEach(btn => {
-      btn.className = 'dose-btn' + (+btn.dataset.g === grams ? ' active' : '');
-    });
-
-    // Water & Tips
-    const w = water(), m = activeMethod();
-    if (animReq) cancelAnimationFrame(animReq);
-    animateWater(w);
-    $('ratio-display').textContent = `1:${m.ratio}`;
-    $('tip-text').innerHTML = `Temp: <strong>${m.temp||'—'}</strong> · Grind: <strong>${m.grind||'—'}</strong>`;
-
-    // Coffee Bean Selector update
-    const beanSelect = $('bean-select');
-    const curSel = selectedBeanId;
-    beanSelect.innerHTML = '<option value="">Generic / No Specific Bean</option>';
-    const activeBeans = beans.filter(b => !b.finished);
-    activeBeans.forEach(b => {
-      const opt = document.createElement('option');
-      opt.value = b.id;
-      opt.textContent = `${b.roaster} - ${b.name} (${b.weight}g left)`;
-      if (b.id === curSel) opt.selected = true;
-      beanSelect.appendChild(opt);
-    });
+  // --- Smart Guide Recommendation Engine ---
+  function getSmartRecommendations(bean) {
+    const recs = {
+      temp: "90–92 °C",
+      grind: "Medium",
+      bloomDuration: 40,
+      description: ""
+    };
     
-    const activeSelected = activeBeans.find(b => b.id === curSel);
-    if (!activeSelected) {
-      selectedBeanId = '';
-      beanSelect.value = '';
+    if (!bean) return recs;
+    
+    // Roast level mapping
+    const roast = bean.roast.toLowerCase();
+    if (roast.includes("light")) {
+      recs.temp = "93–96 °C";
+      recs.grind = "Medium-Fine";
+    } else if (roast.includes("dark")) {
+      recs.temp = "82–85 °C";
+      recs.grind = "Medium-Coarse";
     } else {
-      selectedBeanId = curSel;
-      beanSelect.value = curSel;
+      recs.temp = "89–92 °C";
+      recs.grind = "Medium";
     }
-
-    const selectedBean = beans.find(b => b.id === selectedBeanId);
-    if (selectedBean) {
-      $('beans-status').textContent = `(${selectedBean.weight}g remaining)`;
-      if (grams > selectedBean.weight) {
-        $('bean-warning').hidden = false;
-        $('bean-warning').textContent = `⚠️ Warning: Only ${selectedBean.weight}g left in this bag!`;
+    
+    // Roast age mapping
+    if (bean.roastDate) {
+      const ageDays = Math.round((Date.now() - new Date(bean.roastDate)) / (1000 * 60 * 60 * 24));
+      if (ageDays <= 7) {
+        recs.bloomDuration = 50; // Fresher, needs more degassing
+        recs.description = `Very fresh (${ageDays}d). Extended bloom recommended.`;
+      } else if (ageDays > 21) {
+        recs.bloomDuration = 30; // Aged, requires less degassing
+        recs.description = `Aged (${ageDays}d). Shorter bloom recommended.`;
       } else {
-        $('bean-warning').hidden = true;
+        recs.bloomDuration = 40;
+        recs.description = `Perfect window (${ageDays}d). Standard bloom recommended.`;
       }
     } else {
-      $('beans-status').textContent = '';
-      $('bean-warning').hidden = true;
+      recs.bloomDuration = 45;
+      recs.description = "Roast date unknown. Presetting moderate bloom.";
     }
+    
+    return recs;
+  }
 
+  // --- Render Functions ---
+  function render(skipStagesReflow = false) {
+    // 1. Render Tab bar state
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.classList.toggle('active', item.dataset.view === activeTab);
+    });
+    
+    document.querySelectorAll('.view-section').forEach(section => {
+      section.hidden = section.id !== `view-${activeTab}`;
+    });
 
-    if(running) {
-      $('poured-row').hidden = false;
-      const st = activeStages(), cur = st[stageIdx];
-      const wp = st.slice(0,stageIdx).reduce((a,s)=>a+s.water*w,0) + (cur?cur.water*w*(stageElapsed/cur.duration):0);
-      $('poured-value').innerHTML = Math.round(wp) + '<span class="poured-ml">ml</span>';
-    } else $('poured-row').hidden = true;
-
-    // Timer
-    const dispTime = countdown ? Math.max(0, totalTime() - elapsed) : elapsed;
-    timerVal.textContent = done ? 'Done!' : fmt(dispTime);
-    timerVal.className = 'timer-value' + (done ? ' done' : '');
-    $('timer-sub').textContent = done ? 'Enjoy your brew' : `Total ${fmt(totalTime())}`;
-    $('pulse-ring').className = 'pulse-ring' + (running ? ' active' : '');
-    $('countdown-toggle').textContent = countdown ? '⏱ Count Down' : '⏱ Count Up';
-    $('countdown-toggle').className = 'countdown-toggle' + (countdown ? ' active' : '');
-
-    // Progress
-    if(done) $('progress-area').style.display = 'none';
-    else {
-      $('progress-area').style.display = '';
-      const st = activeStages(), cur = st[stageIdx];
-      $('progress-stage').textContent = (running||elapsed>0) ? cur?.label : 'Ready to brew';
-      $('progress-count').textContent = elapsed>0 ? `Stage ${stageIdx+1} / ${st.length}` : '';
-      $('total-fill').style.width = (elapsed/totalTime()*100) + '%';
-      $('stage-fill').style.width = cur ? (stageElapsed/cur.duration*100) + '%' : '0%';
-    }
-
-    // Stages list
-    if (!skipStagesReflow) {
-      const stList = $('stage-list');
-      stList.innerHTML = '';
-      let acc = 0;
-      activeStages().forEach((s,i) => {
-        const start = acc; acc += s.duration;
-        const active = elapsed >= start && elapsed < acc && (running||elapsed>0);
-        const complete = elapsed >= acc;
-        const row = document.createElement('div');
-        row.className = 'stage-row' + (active?' is-active':'') + (complete?' is-done':'');
-        row.id = `stage-row-${i}`;
-        let nameH = `<span class="stage-name">${s.label}`;
-        if(s.bloom) nameH += `<span class="bloom-badge">bloom</span>`;
-        nameH += '</span>';
-        let met = fmt(s.duration);
-        if(s.water > 0) met += `<span class="water-tag">${Math.round(s.water*w)}ml</span>`;
-        row.innerHTML = `<div class="stage-dot">${complete?'✓':''}</div><div class="stage-info">${nameH}</div><div class="stage-meta">${met}</div>`;
-        stList.appendChild(row);
+    if (activeTab === 'timer') {
+      // Method pills
+      pills.innerHTML = '';
+      allMethods().forEach(m => {
+        const b = document.createElement('button');
+        b.className = 'method-pill' + (m.id===method.id ? ' active' : '');
+        b.textContent = m.name;
+        b.onclick = () => { method=m; reset(); render(); };
+        pills.appendChild(b);
       });
-    } else {
-      // Just update classes
-      let acc = 0;
-      activeStages().forEach((s,i) => {
-        const start = acc; acc += s.duration;
-        const active = elapsed >= start && elapsed < acc && (running||elapsed>0);
-        const complete = elapsed >= acc;
-        const row = $(`stage-row-${i}`);
-        if(row) row.className = 'stage-row' + (active?' is-active':'') + (complete?' is-done':'');
-        // also update dot color
-        if(row) {
-          const dot = row.querySelector('.stage-dot');
-          dot.textContent = complete ? '✓' : '';
+
+      // Bloom
+      if(!hasBloom()) $('bloom-section').hidden = true;
+      else {
+        $('bloom-section').hidden = false;
+        $('bloom-toggle').className = 'bloom-toggle' + (bloomOn?' on':'');
+        $('bloom-icon-box').textContent = bloomOn?'🌸':'🌾';
+        
+        // Grab custom or preset bloom stage
+        const bloomStage = activeMethod().stages.find(s=>s.bloom);
+        let bml = 0;
+        if (bloomStage) {
+          bml = Math.round(bloomStage.water * water());
         }
+        $('bloom-desc').textContent = bloomOn ? `${bml}ml · degasses CO₂` : 'Skipped';
+      }
+
+      // Grams & Quick Dose
+      $('gram-display').innerHTML = grams + '<span class="gram-unit">g</span>';
+      $('gram-slider').value = grams;
+      document.querySelectorAll('.dose-btn').forEach(btn => {
+        btn.className = 'dose-btn' + (+btn.dataset.g === grams ? ' active' : '');
       });
+
+      // Water needed
+      const w = water(), m = activeMethod();
+      if (animReq) cancelAnimationFrame(animReq);
+      animateWater(w);
+      $('ratio-display').textContent = `1:${m.ratio}`;
+      
+      // Smart Guide suggestions
+      const selectedBean = beans.find(b => b.id === selectedBeanId);
+      if (selectedBean) {
+        const rec = getSmartRecommendations(selectedBean);
+        $('tip-icon').textContent = '🤖';
+        $('tip-text').innerHTML = `Smart tip: Brew at <strong>${rec.temp}</strong> · Grind: <strong>${rec.grind}</strong> · Bloom: <strong>${rec.bloomDuration}s</strong><br><small style="opacity:0.8">${rec.description}</small>`;
+      } else {
+        $('tip-icon').textContent = '🌡️';
+        $('tip-text').innerHTML = `Temp: <strong>${m.temp||'—'}</strong> · Grind: <strong>${m.grind||'—'}</strong>`;
+      }
+
+      // Poured water status
+      if(running) {
+        $('poured-row').hidden = false;
+        const st = activeStages(), cur = st[stageIdx];
+        const wp = st.slice(0,stageIdx).reduce((a,s)=>a+s.water*w,0) + (cur?cur.water*w*(stageElapsed/cur.duration):0);
+        $('poured-value').innerHTML = Math.round(wp) + '<span class="poured-ml">ml</span>';
+      } else $('poured-row').hidden = true;
+
+      // Timer Display
+      const dispTime = countdown ? Math.max(0, totalTime() - elapsed) : elapsed;
+      timerVal.textContent = done ? 'Done!' : fmt(dispTime);
+      timerVal.className = 'timer-value' + (done ? ' done' : '');
+      $('timer-sub').textContent = done ? 'Enjoy your brew' : `Total ${fmt(totalTime())}`;
+      $('pulse-ring').className = 'pulse-ring' + (running ? ' active' : '');
+      $('countdown-toggle').textContent = countdown ? '⏱ Count Down' : '⏱ Count Up';
+      $('countdown-toggle').className = 'countdown-toggle' + (countdown ? ' active' : '');
+
+      // Progress bars
+      if(done) $('progress-area').style.display = 'none';
+      else {
+        $('progress-area').style.display = '';
+        const st = activeStages(), cur = st[stageIdx];
+        $('progress-stage').textContent = (running||elapsed>0) ? cur?.label : 'Ready to brew';
+        $('progress-count').textContent = elapsed>0 ? `Stage ${stageIdx+1} / ${st.length}` : '';
+        $('total-fill').style.width = (elapsed/totalTime()*100) + '%';
+        $('stage-fill').style.width = cur ? (stageElapsed/cur.duration*100) + '%' : '0%';
+      }
+
+      // Stages list
+      if (!skipStagesReflow) {
+        const stList = $('stage-list');
+        stList.innerHTML = '';
+        let acc = 0;
+        activeStages().forEach((s,i) => {
+          const start = acc; acc += s.duration;
+          const active = elapsed >= start && elapsed < acc && (running||elapsed>0);
+          const complete = elapsed >= acc;
+          const row = document.createElement('div');
+          row.className = 'stage-row' + (active?' is-active':'') + (complete?' is-done':'');
+          row.id = `stage-row-${i}`;
+          let nameH = `<span class="stage-name">${s.label}`;
+          if(s.bloom) nameH += `<span class="bloom-badge">bloom</span>`;
+          nameH += '</span>';
+          let met = fmt(s.duration);
+          if(s.water > 0) met += `<span class="water-tag">${Math.round(s.water*w)}ml</span>`;
+          row.innerHTML = `<div class="stage-dot">${complete?'✓':''}</div><div class="stage-info">${nameH}</div><div class="stage-meta">${met}</div>`;
+          stList.appendChild(row);
+        });
+      } else {
+        let acc = 0;
+        activeStages().forEach((s,i) => {
+          const start = acc; acc += s.duration;
+          const active = elapsed >= start && elapsed < acc && (running||elapsed>0);
+          const complete = elapsed >= acc;
+          const row = $(`stage-row-${i}`);
+          if(row) row.className = 'stage-row' + (active?' is-active':'') + (complete?' is-done':'');
+          if(row) {
+            const dot = row.querySelector('.stage-dot');
+            dot.textContent = complete ? '✓' : '';
+          }
+        });
+      }
+
+      // Update Beans Select
+      const beanSelect = $('bean-select');
+      const curSel = selectedBeanId;
+      beanSelect.innerHTML = '<option value="">Generic / No Specific Bean</option>';
+      const activeBeans = beans.filter(b => !b.finished);
+      activeBeans.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = `${b.roaster} - ${b.name} (${b.weight}g left)`;
+        if (b.id === curSel) opt.selected = true;
+        beanSelect.appendChild(opt);
+      });
+      
+      const activeSelected = activeBeans.find(b => b.id === curSel);
+      if (!activeSelected) {
+        selectedBeanId = '';
+        beanSelect.value = '';
+      } else {
+        selectedBeanId = curSel;
+        beanSelect.value = curSel;
+      }
+
+      const currentBean = beans.find(b => b.id === selectedBeanId);
+      if (currentBean) {
+        $('beans-status').textContent = `(${currentBean.weight}g left)`;
+        if (grams > currentBean.weight) {
+          $('bean-warning').hidden = false;
+          $('bean-warning').textContent = `⚠️ Warning: Only ${currentBean.weight}g left in this bag!`;
+        } else {
+          $('bean-warning').hidden = true;
+        }
+      } else {
+        $('beans-status').textContent = '';
+        $('bean-warning').hidden = true;
+      }
+
+      // Start button state
+      $('btn-start').textContent = done ? 'Complete' : running ? 'Pause' : elapsed>0 ? 'Resume' : 'Start';
+      $('btn-start').className = 'btn-start' + (done?' is-done':'');
+      $('btn-sound').textContent = soundOn ? '🔔' : '🔕';
+      $('btn-sound').className = 'btn-icon' + (soundOn?'':' muted');
     }
 
-    // Controls
-    $('btn-start').textContent = done ? 'Complete' : running ? 'Pause' : elapsed>0 ? 'Resume' : 'Start';
-    $('btn-start').className = 'btn-start' + (done?' is-done':'');
-    $('btn-sound').textContent = soundOn ? '🔔' : '🔕';
-    $('btn-sound').className = 'btn-icon' + (soundOn?'':' muted');
+    if (activeTab === 'beans') {
+      renderBeansList();
+    }
 
-    // Modals
-    renderHistory();
-    renderFavorites();
+    if (activeTab === 'recipes') {
+      renderFavoritesList();
+      renderCustomRecipesList();
+    }
+
+    if (activeTab === 'journal') {
+      calculateAnalytics();
+      renderHistoryList();
+    }
   }
 
   // --- Engine ---
   function tick() {
     if (!running) return;
     const currentElapsed = Math.floor((Date.now() - timerStartTime) / 1000);
-    if (currentElapsed === elapsed) return; // skip redundant tick calls
+    if (currentElapsed === elapsed) return;
     
     elapsed = currentElapsed;
     if(elapsed >= totalTime()) {
-      elapsed = totalTime(); // cap at total time
+      elapsed = totalTime();
       clearInterval(interval); running = false; done = true;
       if(soundOn) beep('done');
       vibrate(500);
@@ -343,7 +447,6 @@ document.addEventListener('DOMContentLoaded', () => {
       render(true); return;
     }
     
-    // Stage logic
     let acc=0, idx=0, se=0;
     const st = activeStages();
     for(let i=0; i<st.length; i++) {
@@ -360,7 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(st[idx].duration - se === 3 && soundOn) beep('warning');
     
     stageIdx = idx; stageElapsed = se;
-    render(true); // pass true to skip DOM reflow of stages
+    render(true);
   }
   
   function reset() {
@@ -371,14 +474,24 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('active'));
   }
 
-  // --- Events ---
+  // --- Tab Switch Events ---
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.onclick = () => {
+      activeTab = item.dataset.view;
+      render();
+    };
+  });
+
+  // --- Theme Toggle ---
   $('theme-toggle').onclick = () => {
     theme = theme === 'dark' ? 'light' : 'dark';
     document.body.setAttribute('data-theme', theme);
     $('theme-toggle').textContent = theme === 'dark' ? '🌙' : '☀️';
     localStorage.setItem('theme', theme);
+    render();
   };
-  
+
+  // --- Timer Events ---
   $('countdown-toggle').onclick = () => { countdown = !countdown; render(true); };
   
   $('gram-dec').onclick = () => { grams = Math.max(5, grams-1); reset(); render(); };
@@ -400,27 +513,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!running) {
       if(elapsed === 0 && soundOn) beep('start');
       timerStartTime = Date.now() - elapsed * 1000;
-      running = true; interval = setInterval(tick, 200); // Check every 200ms for high responsiveness
+      running = true; interval = setInterval(tick, 200);
     } else { clearInterval(interval); running = false; }
     render(true);
   };
 
   // Keyboard Shortcuts
   document.addEventListener('keydown', (e) => {
-    if(document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
-    // Prevent timer keyboard shortcuts when modals are open
-    if (!$('history-modal').hidden || !$('favorites-modal').hidden || !$('beans-modal').hidden) return;
+    if(document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT') return;
+    // Disable shortcuts if forms are visible in Beans or Recipes
+    if (!$('bean-form-view').hidden || !$('recipe-form-view').hidden) return;
     if(e.code === 'Space') { e.preventDefault(); $('btn-start').click(); }
     if(e.code === 'KeyR') { $('btn-reset').click(); }
   });
 
-  // Bean Selector change handler
+  // Bean Selector dropdown onchange
   $('bean-select').onchange = (e) => {
     selectedBeanId = e.target.value;
     render(true);
   };
 
-  // --- Notes & History ---
+  // --- Brew Notes & History saving ---
   document.querySelectorAll('.rating-btn').forEach(btn => {
     btn.onclick = () => {
       document.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('active'));
@@ -437,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bean.weight = Math.max(0, bean.weight - grams);
         savedBeanName = `${bean.roaster} - ${bean.name}`;
         if (bean.weight <= 0) {
-          bean.finished = true; // Auto-archive when out of beans
+          bean.finished = true;
           showToast(`Finished your bag of ${bean.name}!`);
         } else {
           showToast(`Deducted ${grams}g from ${bean.name} (${bean.weight}g left)`);
@@ -462,104 +575,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!savedBeanName) {
       showToast('Saved to history!');
     }
+    reset();
+    activeTab = 'journal'; // Jump to journal to see stats & logs updated!
     render();
   };
   
-  $('btn-skip-note').onclick = () => { $('brew-notes-card').hidden = true; };
-
-  // --- Modals Logic ---
-  $('btn-history').onclick = () => { $('history-modal').hidden = false; };
-  $('history-close').onclick = () => { $('history-modal').hidden = true; };
-  $('btn-clear-history').onclick = () => { history = []; localStorage.setItem('brewHistory', '[]'); render(); };
-  
-  $('btn-favorites').onclick = () => { $('favorites-modal').hidden = false; };
-  $('favorites-close').onclick = () => { $('favorites-modal').hidden = true; };
-  
-  $('btn-save-fav').onclick = () => {
-    const name = prompt("Name this recipe:");
-    if(name) {
-      favorites.push({ 
-        name, 
-        method: activeMethod().id, 
-        grams 
-      });
-      localStorage.setItem('brewFavs', JSON.stringify(favorites));
-      render();
-      showToast('Recipe saved to Favorites!');
-    }
-  };
-
-  function renderHistory() {
-    const b = $('history-body');
-    if(history.length === 0) b.innerHTML = '<p class="empty-state">No brews logged yet.</p>';
-    else {
-      b.innerHTML = history.map(h => `
-        <div class="log-item">
-          <div>
-            <div class="log-title">${h.method} — ${h.grams}g</div>
-            <div class="log-sub">${new Date(h.date).toLocaleDateString()} · 1:${h.ratio}</div>
-            ${h.beanName ? `<div class="log-sub" style="font-weight:700; color:var(--amber)">🫘 ${h.beanName}</div>` : ''}
-            ${h.note ? `<div class="log-sub" style="font-style:italic">"${h.note}"</div>` : ''}
-          </div>
-          <div class="log-rating">${h.rating==='sour'?'😖':h.rating==='balanced'?'😊':h.rating==='bitter'?'😣':'☕'}</div>
-        </div>
-      `).join('');
-    }
-  }
-
-  function renderFavorites() {
-    const b = $('favorites-body');
-    if(favorites.length === 0) b.innerHTML = '<p class="empty-state">No favorites saved yet.</p>';
-    else {
-      b.innerHTML = favorites.map((f, i) => `
-        <div class="log-item">
-          <div>
-            <div class="log-title">${f.name}</div>
-            <div class="log-sub">${METHODS.find(m=>m.id===f.method)?.name} · ${f.grams}g</div>
-          </div>
-          <div class="log-actions">
-            <button class="log-btn" onclick="window.loadFav(${i})">Load</button>
-            <button class="log-btn" style="color:var(--red)" onclick="window.delFav(${i})">✕</button>
-          </div>
-        </div>
-      `).join('');
-    }
-  }
-
-  window.loadFav = (i) => {
-    const f = favorites[i];
-    method = METHODS.find(m=>m.id===f.method) || METHODS[0];
-    grams = f.grams;
-    
-    $('favorites-modal').hidden = true;
-    reset(); render(); showToast('Loaded recipe!');
-  };
-  
-  window.delFav = (i) => {
-    favorites.splice(i, 1);
-    localStorage.setItem('brewFavs', JSON.stringify(favorites));
+  $('btn-skip-note').onclick = () => {
+    $('brew-notes-card').hidden = true;
+    reset();
     render();
   };
 
-  // --- Coffee Beans Modal & Form Management ---
-  
-  // Show / Close Modal
-  $('btn-beans').onclick = () => {
-    $('beans-modal').hidden = false;
-    $('beans-list-view').hidden = false;
-    $('bean-form-view').hidden = true;
-    renderBeans();
-  };
-  $('beans-close').onclick = () => {
-    $('beans-modal').hidden = true;
-  };
-  
-  // Show Add Form
+  // --- Beans Tab Management ---
   $('btn-add-bean-show').onclick = () => {
     $('bean-form-title').textContent = 'Add Coffee Bean';
     $('form-bean-id').value = '';
     $('bean-form').reset();
-    // Pre-fill today's date for convenience
     $('input-roast-date').value = new Date().toISOString().split('T')[0];
     $('input-bag-size').value = 250;
     $('input-weight').value = 250;
@@ -568,13 +599,11 @@ document.addEventListener('DOMContentLoaded', () => {
     $('bean-form-view').hidden = false;
   };
   
-  // Cancel Form
   $('btn-cancel-bean').onclick = () => {
     $('bean-form-view').hidden = true;
     $('beans-list-view').hidden = false;
   };
   
-  // Save Bean Bag (both Add and Edit)
   $('btn-save-bean').onclick = () => {
     const roaster = $('input-roaster').value.trim();
     const name = $('input-name').value.trim();
@@ -592,7 +621,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     if (id) {
-      // Edit mode
       const b = beans.find(x => x.id === id);
       if (b) {
         b.roaster = roaster;
@@ -606,17 +634,9 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Bean details updated!');
       }
     } else {
-      // Create mode
       const newBean = {
         id: 'bean_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-        roaster,
-        name,
-        origin,
-        roast,
-        roastDate,
-        bagSize,
-        weight,
-        notes,
+        roaster, name, origin, roast, roastDate, bagSize, weight, notes,
         finished: false
       };
       beans.push(newBean);
@@ -626,12 +646,10 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('brewBeans', JSON.stringify(beans));
     $('bean-form-view').hidden = true;
     $('beans-list-view').hidden = false;
-    renderBeans();
     render();
   };
 
-  // Render Beans List in Modal
-  function renderBeans() {
+  function renderBeansList() {
     const list = $('beans-list');
     list.innerHTML = '';
     
@@ -640,9 +658,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
-    // Sort: Active first, then Finished
     const sorted = [...beans].sort((x, y) => {
-      if (x.finished === y.finished) return y.id.localeCompare(x.id); // newer first
+      if (x.finished === y.finished) return y.id.localeCompare(x.id);
       return x.finished ? 1 : -1;
     });
     
@@ -697,11 +714,10 @@ document.addEventListener('DOMContentLoaded', () => {
       list.appendChild(card);
     });
   }
-  
-  // Actions exposed to window
+
   window.useBean = (id) => {
     selectedBeanId = id;
-    $('beans-modal').hidden = true;
+    activeTab = 'timer';
     render();
     showToast('Coffee bean selected!');
   };
@@ -730,11 +746,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (b) {
       b.finished = !b.finished;
       if (b.finished && selectedBeanId === id) {
-        selectedBeanId = ''; // deselect if archived
+        selectedBeanId = '';
       }
       localStorage.setItem('brewBeans', JSON.stringify(beans));
       showToast(b.finished ? 'Coffee bag archived!' : 'Coffee bag restored!');
-      renderBeans();
       render();
     }
   };
@@ -747,9 +762,379 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedBeanId === id) selectedBeanId = '';
         localStorage.setItem('brewBeans', JSON.stringify(beans));
         showToast('Coffee bag deleted!');
-        renderBeans();
         render();
       }
+    }
+  };
+
+  // --- Recipes & Custom Recipe Builder tab management ---
+  function renderFavoritesList() {
+    const b = $('favorites-body');
+    if(favorites.length === 0) b.innerHTML = '<p class="empty-state">No favorites saved yet.</p>';
+    else {
+      b.innerHTML = favorites.map((f, i) => `
+        <div class="log-item">
+          <div>
+            <div class="log-title">${f.name}</div>
+            <div class="log-sub">${allMethods().find(m=>m.id===f.method)?.name || 'Custom'} · ${f.grams}g</div>
+          </div>
+          <div class="log-actions">
+            <button class="log-btn" onclick="window.loadFav(${i})">Load</button>
+            <button class="log-btn" style="color:var(--red)" onclick="window.delFav(${i})">✕</button>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  window.loadFav = (i) => {
+    const f = favorites[i];
+    method = allMethods().find(m=>m.id===f.method) || METHODS[0];
+    grams = f.grams;
+    activeTab = 'timer';
+    reset(); render(); showToast('Loaded recipe!');
+  };
+  
+  window.delFav = (i) => {
+    favorites.splice(i, 1);
+    localStorage.setItem('brewFavs', JSON.stringify(favorites));
+    render();
+  };
+
+  $('btn-save-fav').onclick = () => {
+    const name = prompt("Name this recipe:");
+    if(name) {
+      favorites.push({ 
+        name, 
+        method: activeMethod().id, 
+        grams 
+      });
+      localStorage.setItem('brewFavs', JSON.stringify(favorites));
+      render();
+      showToast('Recipe saved to Favorites!');
+    }
+  };
+
+  // --- Custom Recipes list and creation ---
+  function renderCustomRecipesList() {
+    const list = $('custom-recipes-list');
+    if(customRecipes.length === 0) {
+      list.innerHTML = '<p class="empty-state">No custom recipes created yet.</p>';
+    } else {
+      list.innerHTML = customRecipes.map(r => `
+        <div class="log-item">
+          <div>
+            <div class="log-title">${r.name}</div>
+            <div class="log-sub">${r.stages.length} stages · Ratio 1:${r.ratio} · Temp ${r.temp}</div>
+          </div>
+          <div class="log-actions">
+            <button class="log-btn" onclick="window.loadCustomRecipe('${r.id}')">Load</button>
+            <button class="log-btn" onclick="window.editCustomRecipe('${r.id}')">Edit</button>
+            <button class="log-btn" style="color:var(--red)" onclick="window.deleteCustomRecipe('${r.id}')">✕</button>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Dynamic stages form builder row markup helper
+  function addStageRow(label = '', duration = 30, waterPct = 20, isBloom = false) {
+    const container = $('recipe-stages-container');
+    const div = document.createElement('div');
+    div.className = 'recipe-stage-row';
+    div.innerHTML = `
+      <input type="text" class="stage-lbl" placeholder="Stage Label (e.g. Pour)" value="${label}" required>
+      <input type="number" class="stage-dur" placeholder="Seconds" value="${duration}" min="1" required>
+      <input type="number" class="stage-water" placeholder="Water %" value="${waterPct}" min="0" max="100" required>
+      <div class="bloom-chk-wrapper">
+        <label>Bloom</label>
+        <input type="checkbox" class="stage-bloom" ${isBloom?'checked':''}>
+      </div>
+      <button type="button" class="btn-stage-delete" onclick="this.parentElement.remove(); window.recalcRecipeWaterTotal();">✕</button>
+    `;
+    // Add event listener to update total water % dynamically on input change
+    div.querySelectorAll('input').forEach(input => {
+      input.oninput = () => window.recalcRecipeWaterTotal();
+      input.onchange = () => window.recalcRecipeWaterTotal();
+    });
+    container.appendChild(div);
+    window.recalcRecipeWaterTotal();
+  }
+
+  window.recalcRecipeWaterTotal = () => {
+    let total = 0;
+    document.querySelectorAll('.recipe-stage-row').forEach(row => {
+      total += parseInt(row.querySelector('.stage-water').value) || 0;
+    });
+    const label = $('stages-total-pct');
+    label.textContent = `Total: ${total}%`;
+    label.classList.toggle('invalid', total !== 100);
+  };
+
+  $('btn-add-recipe-show').onclick = () => {
+    $('recipe-form-title').textContent = 'Create Custom Recipe';
+    $('form-recipe-id').value = '';
+    $('recipe-form').reset();
+    $('recipe-stages-container').innerHTML = '';
+    
+    // Seed with two default rows: Bloom (40s, 15%) and Pour (60s, 85%)
+    addStageRow('Bloom', 40, 15, true);
+    addStageRow('Main Pour', 60, 85, false);
+    
+    $('recipes-list-view').hidden = true;
+    $('recipe-form-view').hidden = false;
+  };
+
+  $('btn-recipe-add-stage').onclick = () => {
+    addStageRow('Pour', 45, 20, false);
+  };
+
+  $('btn-cancel-recipe').onclick = () => {
+    $('recipe-form-view').hidden = true;
+    $('recipes-list-view').hidden = false;
+  };
+
+  $('btn-save-recipe').onclick = () => {
+    const name = $('recipe-input-name').value.trim();
+    const ratio = parseInt($('recipe-input-ratio').value) || 15;
+    const temp = $('recipe-input-temp').value.trim() || '92 °C';
+    const grind = $('recipe-input-grind').value.trim() || 'Medium';
+    const id = $('form-recipe-id').value;
+
+    if (!name) {
+      showToast('Please specify a recipe name!');
+      return;
+    }
+
+    // Read stages
+    const rows = document.querySelectorAll('.recipe-stage-row');
+    if (rows.length === 0) {
+      showToast('Please add at least one stage!');
+      return;
+    }
+
+    let totalPct = 0;
+    const stages = [];
+    let isValid = true;
+    
+    rows.forEach(row => {
+      const label = row.querySelector('.stage-lbl').value.trim();
+      const duration = parseInt(row.querySelector('.stage-dur').value) || 0;
+      const waterPct = parseInt(row.querySelector('.stage-water').value) || 0;
+      const isBloom = row.querySelector('.stage-bloom').checked;
+      
+      if (!label || duration <= 0) isValid = false;
+      totalPct += waterPct;
+      
+      stages.push({
+        label,
+        duration,
+        water: waterPct / 100, // converted back to fraction
+        bloom: isBloom
+      });
+    });
+
+    if (!isValid) {
+      showToast('Please ensure all stages have labels and positive durations!');
+      return;
+    }
+
+    if (totalPct !== 100) {
+      showToast(`Water percentages must sum to 100%! Current sum: ${totalPct}%`);
+      return;
+    }
+
+    if (id) {
+      const r = customRecipes.find(x => x.id === id);
+      if (r) {
+        r.name = name;
+        r.ratio = ratio;
+        r.temp = temp;
+        r.grind = grind;
+        r.stages = stages;
+        showToast('Custom recipe updated!');
+      }
+    } else {
+      const newRecipe = {
+        id: 'recipe_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        name, ratio, temp, grind, stages
+      };
+      customRecipes.push(newRecipe);
+      showToast('Custom recipe created!');
+    }
+
+    localStorage.setItem('brewCustomRecipes', JSON.stringify(customRecipes));
+    $('recipe-form-view').hidden = true;
+    $('recipes-list-view').hidden = false;
+    render();
+  };
+
+  window.loadCustomRecipe = (id) => {
+    const r = customRecipes.find(x => x.id === id);
+    if (r) {
+      method = r;
+      activeTab = 'timer';
+      reset();
+      render();
+      showToast(`Loaded ${r.name}!`);
+    }
+  };
+
+  window.editCustomRecipe = (id) => {
+    const r = customRecipes.find(x => x.id === id);
+    if (r) {
+      $('recipe-form-title').textContent = 'Edit Custom Recipe';
+      $('form-recipe-id').value = r.id;
+      $('recipe-input-name').value = r.name;
+      $('recipe-input-ratio').value = r.ratio;
+      $('recipe-input-temp').value = r.temp;
+      $('recipe-input-grind').value = r.grind;
+      
+      $('recipe-stages-container').innerHTML = '';
+      r.stages.forEach(s => {
+        addStageRow(s.label, s.duration, Math.round(s.water * 100), s.bloom);
+      });
+      
+      $('recipes-list-view').hidden = true;
+      $('recipe-form-view').hidden = false;
+    }
+  };
+
+  window.deleteCustomRecipe = (id) => {
+    if (confirm("Delete this custom recipe?")) {
+      const idx = customRecipes.findIndex(x => x.id === id);
+      if (idx !== -1) {
+        customRecipes.splice(idx, 1);
+        if (method.id === id) {
+          method = METHODS[0]; // Reset to Pourover preset if loaded method is deleted
+        }
+        localStorage.setItem('brewCustomRecipes', JSON.stringify(customRecipes));
+        showToast('Custom recipe deleted!');
+        render();
+      }
+    }
+  };
+
+  // --- Advanced Stats & History Journal tab management ---
+  function calculateAnalytics() {
+    const totalBrews = history.length;
+    let totalGrams = 0;
+    let totalWaterMl = 0;
+    let ratingSum = 0;
+    let ratedBrewsCount = 0;
+    
+    const methodCounts = {};
+    const ratingCounts = { sour: 0, balanced: 0, bitter: 0, unrated: 0 };
+
+    history.forEach(h => {
+      totalGrams += h.grams || 0;
+      totalWaterMl += h.water || (h.grams * h.ratio) || 0;
+      
+      // Calculate rating scores
+      if (h.rating) {
+        ratedBrewsCount++;
+        if (h.rating === 'balanced') {
+          ratingSum += 5.0;
+          ratingCounts.balanced++;
+        } else if (h.rating === 'bitter') {
+          ratingSum += 3.0;
+          ratingCounts.bitter++;
+        } else if (h.rating === 'sour') {
+          ratingSum += 2.0;
+          ratingCounts.sour++;
+        }
+      } else {
+        ratingCounts.unrated++;
+      }
+
+      // Group by method
+      const mName = h.method || 'Unknown';
+      methodCounts[mName] = (methodCounts[mName] || 0) + 1;
+    });
+
+    const avgRating = ratedBrewsCount > 0 ? (ratingSum / ratedBrewsCount).toFixed(1) : '0.0';
+
+    // Update Counter cards
+    $('stat-total-brews').textContent = totalBrews;
+    $('stat-total-coffee').innerHTML = totalGrams + '<span class="stat-unit">g</span>';
+    $('stat-total-water').innerHTML = (totalWaterMl / 1000).toFixed(1) + '<span class="stat-unit">L</span>';
+    $('stat-avg-rating').textContent = avgRating;
+
+    // 1. Render Brews by Method CSS Chart
+    const methodsGroup = $('chart-methods');
+    methodsGroup.innerHTML = '';
+    
+    const mEntries = Object.entries(methodCounts);
+    if (mEntries.length === 0) {
+      methodsGroup.innerHTML = '<span style="font-size:10px; color:var(--gold-45)">No data</span>';
+    } else {
+      const maxCount = Math.max(...mEntries.map(e => e[1]));
+      mEntries.sort((a,b) => b[1] - a[1]).slice(0, 3).forEach(([methodName, count]) => {
+        const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
+        const wrap = document.createElement('div');
+        wrap.className = 'chart-bar-wrap';
+        wrap.innerHTML = `
+          <div class="chart-bar" style="height: ${pct}%" data-count="${count} brews"></div>
+          <span class="chart-bar-label">${methodName}</span>
+        `;
+        methodsGroup.appendChild(wrap);
+      });
+    }
+
+    // 2. Render Brews by Rating CSS Chart
+    const ratingsGroup = $('chart-ratings');
+    ratingsGroup.innerHTML = '';
+    
+    const rEntries = [
+      ['Balanced', ratingCounts.balanced, '😊'],
+      ['Bitter', ratingCounts.bitter, '😣'],
+      ['Sour', ratingCounts.sour, '😖']
+    ];
+    
+    const maxRatingCount = Math.max(...rEntries.map(e => e[1]));
+    if (maxRatingCount === 0) {
+      ratingsGroup.innerHTML = '<span style="font-size:10px; color:var(--gold-45)">No data</span>';
+    } else {
+      rEntries.forEach(([label, count, emoji]) => {
+        const pct = maxRatingCount > 0 ? (count / maxRatingCount) * 100 : 0;
+        const wrap = document.createElement('div');
+        wrap.className = 'chart-bar-wrap';
+        wrap.innerHTML = `
+          <div class="chart-bar" style="height: ${pct}%" data-count="${count} brews"></div>
+          <span class="chart-bar-label">${emoji} ${label}</span>
+        `;
+        ratingsGroup.appendChild(wrap);
+      });
+    }
+  }
+
+  function renderHistoryList() {
+    const b = $('history-body');
+    const clearBtn = $('btn-clear-history');
+    if(history.length === 0) {
+      b.innerHTML = '<p class="empty-state">No brews logged yet.</p>';
+      clearBtn.style.display = 'none';
+    } else {
+      clearBtn.style.display = 'block';
+      b.innerHTML = history.map(h => `
+        <div class="log-item">
+          <div>
+            <div class="log-title">${h.method} — ${h.grams}g</div>
+            <div class="log-sub">${new Date(h.date).toLocaleDateString()} · 1:${h.ratio}</div>
+            ${h.beanName ? `<div class="log-sub" style="font-weight:700; color:var(--amber)">🫘 ${h.beanName}</div>` : ''}
+            ${h.note ? `<div class="log-sub" style="font-style:italic">"${h.note}"</div>` : ''}
+          </div>
+          <div class="log-rating">${h.rating==='sour'?'😖':h.rating==='balanced'?'😊':h.rating==='bitter'?'😣':'☕'}</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  $('btn-clear-history').onclick = () => {
+    if (confirm("Clear all brew history? This cannot be undone.")) {
+      history = [];
+      localStorage.setItem('brewHistory', '[]');
+      render();
     }
   };
 

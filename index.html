@@ -7,7 +7,7 @@
     <meta name="description" content="A precision coffee timer and water ratio calculator with brew method presets, stage-guided brewing, bloom control, and brew history.">
     <meta name="theme-color" content="#c8823c">
     <link rel="manifest" href="manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body data-theme="dark">
@@ -32,272 +32,377 @@
                 <h1 class="hero-title">The Brew Timer</h1>
                 <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">🌙</button>
             </div>
-            <p class="hero-sub">Precision brewing, every cup</p>
+            <p class="hero-sub" id="hero-subtitle">Precision brewing, every cup</p>
         </header>
 
-        <!-- ── MAIN CARD ───────────────────────────── -->
-        <div class="card">
+        <!-- ── VIEW CONTAINER ──────────────────────── -->
+        <div class="view-container">
 
-            <!-- Brew Method -->
-            <div class="section" id="section-method">
-                <label class="section-label">Brew Method</label>
-                <div class="method-pills" id="method-pills"></div>
-            </div>
+            <!-- ── VIEW 1: TIMER ───────────────────────── -->
+            <main class="view-section" id="view-timer">
+                <div class="card">
+                    <!-- Brew Method -->
+                    <div class="section" id="section-method">
+                        <label class="section-label">Brew Method</label>
+                        <div class="method-pills" id="method-pills"></div>
+                    </div>
 
+                    <!-- Bloom Toggle -->
+                    <div class="section" id="bloom-section" hidden>
+                        <label class="section-label">Optional Step</label>
+                        <button class="bloom-toggle" id="bloom-toggle" aria-pressed="true">
+                            <div class="bloom-left">
+                                <div class="bloom-icon-box" id="bloom-icon-box">🌸</div>
+                                <div class="bloom-text">
+                                    <div class="bloom-title" id="bloom-title">Bloom / Pre-wet</div>
+                                    <div class="bloom-desc" id="bloom-desc"></div>
+                                </div>
+                            </div>
+                            <div class="toggle-track" id="toggle-track">
+                                <div class="toggle-thumb" id="toggle-thumb"></div>
+                            </div>
+                        </button>
+                    </div>
 
-
-            <!-- Bloom Toggle -->
-            <div class="section" id="bloom-section" hidden>
-                <label class="section-label">Optional Step</label>
-                <button class="bloom-toggle" id="bloom-toggle" aria-pressed="true">
-                    <div class="bloom-left">
-                        <div class="bloom-icon-box" id="bloom-icon-box">🌸</div>
-                        <div class="bloom-text">
-                            <div class="bloom-title" id="bloom-title">Bloom / Pre-wet</div>
-                            <div class="bloom-desc" id="bloom-desc"></div>
+                    <!-- Coffee Grams -->
+                    <div class="section" id="section-coffee">
+                        <div class="coffee-header">
+                            <label class="section-label" style="margin-bottom:0">Coffee</label>
+                            <div class="gram-stepper">
+                                <button class="step-btn" id="gram-dec" aria-label="Decrease">−</button>
+                                <span class="gram-display" id="gram-display">20<span class="gram-unit">g</span></span>
+                                <button class="step-btn" id="gram-inc" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                        <input type="range" id="gram-slider" min="5" max="100" value="20" aria-label="Coffee grams">
+                        <!-- Quick-dose buttons -->
+                        <div class="quick-dose" id="quick-dose">
+                            <button class="dose-btn" data-g="15">15g</button>
+                            <button class="dose-btn" data-g="18">18g</button>
+                            <button class="dose-btn active" data-g="20">20g</button>
+                            <button class="dose-btn" data-g="25">25g</button>
+                            <button class="dose-btn" data-g="30">30g</button>
                         </div>
                     </div>
-                    <div class="toggle-track" id="toggle-track">
-                        <div class="toggle-thumb" id="toggle-thumb"></div>
+
+                    <!-- Coffee Beans Selector -->
+                    <div class="section" id="section-beans-select">
+                        <div class="beans-select-header">
+                            <label class="section-label" for="bean-select" style="margin-bottom:0">Coffee Bean</label>
+                            <span class="beans-status" id="beans-status"></span>
+                        </div>
+                        <select id="bean-select" class="bean-select">
+                            <option value="">Generic / No Specific Bean</option>
+                        </select>
+                        <div class="bean-warning" id="bean-warning" hidden>⚠️ Not enough coffee remaining!</div>
                     </div>
-                </button>
-            </div>
 
-            <!-- Coffee Grams -->
-            <div class="section" id="section-coffee">
-                <div class="coffee-header">
-                    <label class="section-label" style="margin-bottom:0">Coffee</label>
-                    <div class="gram-stepper">
-                        <button class="step-btn" id="gram-dec" aria-label="Decrease">−</button>
-                        <span class="gram-display" id="gram-display">20<span class="gram-unit">g</span></span>
-                        <button class="step-btn" id="gram-inc" aria-label="Increase">+</button>
+                    <!-- Water Suggestion -->
+                    <div class="water-box" id="water-box">
+                        <div class="water-bg-icon">💧</div>
+                        <div class="water-label-row">
+                            <span>Water Needed · Ratio</span>
+                            <div class="ratio-stepper">
+                                <button class="step-btn small" id="ratio-dec" aria-label="Decrease ratio">−</button>
+                                <span class="ratio-display" id="ratio-display">1:15</span>
+                                <button class="step-btn small" id="ratio-inc" aria-label="Increase ratio">+</button>
+                            </div>
+                        </div>
+                        <div class="water-value">
+                            <span class="water-number" id="water-number">300</span>
+                            <span class="water-ml">ml</span>
+                        </div>
+                        <div class="poured-row" id="poured-row" hidden>
+                            <div class="poured-label">Poured so far</div>
+                            <div class="poured-value" id="poured-value">0<span class="poured-ml">ml</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Brew Tips (Dynamic Smart Guide) -->
+                    <div class="brew-tip" id="brew-tip">
+                        <span class="tip-icon" id="tip-icon">🌡️</span>
+                        <span id="tip-text">Temp: — · Grind: —</span>
+                    </div>
+
+                    <!-- Timer Display -->
+                    <div class="timer-display" id="timer-wrap">
+                        <div class="pulse-ring" id="pulse-ring"></div>
+                        <div class="timer-value" id="timer-value">00:00</div>
+                        <div class="timer-sub-row">
+                            <span class="timer-sub" id="timer-sub">Total 03:45</span>
+                            <button class="countdown-toggle" id="countdown-toggle" title="Toggle countdown mode" aria-label="Toggle countdown">⏱ Count Up</button>
+                        </div>
+                    </div>
+
+                    <!-- Stage Progress Bars -->
+                    <div class="progress-area" id="progress-area">
+                        <div class="progress-header">
+                            <span class="progress-stage" id="progress-stage">Ready to brew</span>
+                            <span class="progress-count" id="progress-count"></span>
+                        </div>
+                        <div class="bar-track total-track">
+                            <div class="bar-fill total-fill" id="total-fill"></div>
+                        </div>
+                        <div class="bar-track stage-track">
+                            <div class="bar-fill stage-fill" id="stage-fill"></div>
+                        </div>
+                    </div>
+
+                    <!-- Stage List -->
+                    <div class="stage-list" id="stage-list"></div>
+
+                    <!-- Controls -->
+                    <div class="controls" id="controls">
+                        <button class="btn-start" id="btn-start">Start</button>
+                        <button class="btn-icon" id="btn-sound" title="Toggle sound" aria-label="Toggle sound">🔔</button>
+                        <button class="btn-icon" id="btn-reset" title="Reset timer (R)" aria-label="Reset timer">↺</button>
+                    </div>
+
+                    <!-- Keyboard hint -->
+                    <div class="kbd-hint" id="kbd-hint">
+                        <kbd>Space</kbd> Start/Pause &nbsp; <kbd>R</kbd> Reset
                     </div>
                 </div>
-                <input type="range" id="gram-slider" min="5" max="100" value="20" aria-label="Coffee grams">
-                <!-- Quick-dose buttons -->
-                <div class="quick-dose" id="quick-dose">
-                    <button class="dose-btn" data-g="15">15g</button>
-                    <button class="dose-btn" data-g="18">18g</button>
-                    <button class="dose-btn active" data-g="20">20g</button>
-                    <button class="dose-btn" data-g="25">25g</button>
-                    <button class="dose-btn" data-g="30">30g</button>
-                </div>
-            </div>
 
-            <!-- Coffee Beans Selector -->
-            <div class="section" id="section-beans-select">
-                <div class="beans-select-header">
-                    <label class="section-label" for="bean-select" style="margin-bottom:0">Coffee Bean</label>
-                    <span class="beans-status" id="beans-status"></span>
-                </div>
-                <select id="bean-select" class="bean-select">
-                    <option value="">Generic / No Specific Bean</option>
-                </select>
-                <div class="bean-warning" id="bean-warning" hidden>⚠️ Not enough coffee remaining!</div>
-            </div>
-
-            <!-- Water Suggestion -->
-            <div class="water-box" id="water-box">
-                <div class="water-bg-icon">💧</div>
-                <div class="water-label-row">
-                    <span>Water Needed · Ratio</span>
-                    <div class="ratio-stepper">
-                        <button class="step-btn small" id="ratio-dec" aria-label="Decrease ratio">−</button>
-                        <span class="ratio-display" id="ratio-display">1:15</span>
-                        <button class="step-btn small" id="ratio-inc" aria-label="Increase ratio">+</button>
+                <!-- Brew Notes (shown after completion) -->
+                <div class="card brew-notes-card" id="brew-notes-card" hidden>
+                    <h2 class="card-title">How was this brew? ☕</h2>
+                    <div class="notes-rating" id="notes-rating">
+                        <button class="rating-btn" data-r="sour">😖 Sour</button>
+                        <button class="rating-btn" data-r="balanced">😊 Balanced</button>
+                        <button class="rating-btn" data-r="bitter">😣 Bitter</button>
+                    </div>
+                    <textarea class="notes-text" id="notes-text" rows="2" placeholder="Optional notes..."></textarea>
+                    <div class="notes-actions">
+                        <button class="btn-save-note" id="btn-save-note">💾 Save to History</button>
+                        <button class="btn-skip-note" id="btn-skip-note">Skip</button>
                     </div>
                 </div>
-                <div class="water-value">
-                    <span class="water-number" id="water-number">300</span>
-                    <span class="water-ml">ml</span>
+            </main>
+
+            <!-- ── VIEW 2: BEANS ───────────────────────── -->
+            <main class="view-section" id="view-beans" hidden>
+                <div class="card">
+                    <h2 class="view-title">🫘 Coffee Beans</h2>
+                    
+                    <div id="beans-list-view">
+                        <div class="beans-list" id="beans-list">
+                            <p class="empty-state">No coffee beans added yet.</p>
+                        </div>
+                        <button class="btn-add-bean-show" id="btn-add-bean-show">+ Add New Bean Bag</button>
+                    </div>
+
+                    <div id="bean-form-view" hidden>
+                        <h3 class="form-title" id="bean-form-title">Add Coffee Bean</h3>
+                        <form id="bean-form" onsubmit="return false;">
+                            <input type="hidden" id="form-bean-id">
+                            
+                            <div class="form-group">
+                                <label for="input-roaster">Roaster</label>
+                                <input type="text" id="input-roaster" placeholder="e.g. Onyx Coffee Lab" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="input-name">Bean Name</label>
+                                <input type="text" id="input-name" placeholder="e.g. Monarch" required>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="input-origin">Origin</label>
+                                    <input type="text" id="input-origin" placeholder="e.g. Colombia">
+                                </div>
+                                <div class="form-group">
+                                    <label for="input-roast">Roast Level</label>
+                                    <select id="input-roast">
+                                        <option value="Light">Light</option>
+                                        <option value="Medium-Light">Medium-Light</option>
+                                        <option value="Medium" selected>Medium</option>
+                                        <option value="Medium-Dark">Medium-Dark</option>
+                                        <option value="Dark">Dark</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="input-roast-date">Roast Date</label>
+                                    <input type="date" id="input-roast-date">
+                                </div>
+                                <div class="form-group">
+                                    <label for="input-bag-size">Bag Size (g)</label>
+                                    <input type="number" id="input-bag-size" value="250" min="1" required>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="input-weight">Current Weight (g)</label>
+                                    <input type="number" id="input-weight" value="250" min="0" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="input-notes">Tasting Notes</label>
+                                    <input type="text" id="input-notes" placeholder="e.g. Berries, Chocolate">
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="btn-cancel-bean" id="btn-cancel-bean">Cancel</button>
+                                <button type="button" class="btn-save-bean" id="btn-save-bean">Save</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-                <div class="poured-row" id="poured-row" hidden>
-                    <div class="poured-label">Poured so far</div>
-                    <div class="poured-value" id="poured-value">0<span class="poured-ml">ml</span></div>
+            </main>
+
+            <!-- ── VIEW 3: RECIPES ─────────────────────── -->
+            <main class="view-section" id="view-recipes" hidden>
+                <div class="card">
+                    <h2 class="view-title">🛠️ Recipes</h2>
+                    
+                    <div id="recipes-list-view">
+                        <div class="recipes-container">
+                            <h3 class="sub-label-heading">⭐ Saved Favorites</h3>
+                            <div class="recipes-list" id="favorites-body">
+                                <p class="empty-state">No favorite recipes saved yet.</p>
+                            </div>
+                        </div>
+
+                        <div class="recipes-container" style="margin-top: 24px;">
+                            <h3 class="sub-label-heading">🧪 Custom Recipes</h3>
+                            <div class="recipes-list" id="custom-recipes-list">
+                                <p class="empty-state">No custom recipes created yet.</p>
+                            </div>
+                        </div>
+
+                        <button class="btn-add-recipe-show" id="btn-add-recipe-show">+ Create Custom Recipe</button>
+                    </div>
+
+                    <div id="recipe-form-view" hidden>
+                        <h3 class="form-title" id="recipe-form-title">Create Custom Recipe</h3>
+                        <form id="recipe-form" onsubmit="return false;">
+                            <input type="hidden" id="form-recipe-id">
+                            
+                            <div class="form-group">
+                                <label for="recipe-input-name">Recipe Name</label>
+                                <input type="text" id="recipe-input-name" placeholder="e.g. Tetsu Kasuya 4:6 Method" required>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="recipe-input-ratio">Ratio (1:X)</label>
+                                    <input type="number" id="recipe-input-ratio" value="15" min="1" max="50" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recipe-input-temp">Water Temp</label>
+                                    <input type="text" id="recipe-input-temp" placeholder="e.g. 92 °C" value="92 °C">
+                                </div>
+                                <div class="form-group">
+                                    <label for="recipe-input-grind">Grind Size</label>
+                                    <input type="text" id="recipe-input-grind" placeholder="e.g. Coarse" value="Medium">
+                                </div>
+                            </div>
+
+                            <div class="stages-builder-section">
+                                <div class="stages-builder-header">
+                                    <label class="section-label" style="margin-bottom:0">Brewing Stages</label>
+                                    <span class="stages-total-weight" id="stages-total-pct">Total: 0%</span>
+                                </div>
+                                <p class="stages-help-text">Define how water is added at each stage. Sum of water weights must equal 100%.</p>
+                                
+                                <div id="recipe-stages-container">
+                                    <!-- Dynamic stages rows will go here -->
+                                </div>
+                                
+                                <button type="button" class="btn-recipe-add-stage" id="btn-recipe-add-stage">+ Add Stage</button>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn-cancel-recipe" id="btn-cancel-recipe">Cancel</button>
+                                <button type="button" class="btn-save-recipe" id="btn-save-recipe">Save Recipe</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </div>
+            </main>
 
-            <!-- Brew Tips -->
-            <div class="brew-tip" id="brew-tip">
-                <span class="tip-icon">🌡️</span>
-                <span id="tip-text"></span>
-            </div>
+            <!-- ── VIEW 4: JOURNAL ─────────────────────── -->
+            <main class="view-section" id="view-journal" hidden>
+                <div class="card">
+                    <h2 class="view-title">📜 Journal</h2>
 
-            <!-- Timer Display -->
-            <div class="timer-display" id="timer-wrap">
-                <div class="pulse-ring" id="pulse-ring"></div>
-                <div class="timer-value" id="timer-value">00:00</div>
-                <div class="timer-sub-row">
-                    <span class="timer-sub" id="timer-sub">Total 03:45</span>
-                    <button class="countdown-toggle" id="countdown-toggle" title="Toggle countdown mode" aria-label="Toggle countdown">⏱ Count Up</button>
+                    <!-- Advanced Analytics Dashboard -->
+                    <div class="stats-dashboard" id="stats-dashboard">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <span class="stat-num" id="stat-total-brews">0</span>
+                                <span class="stat-label">Brews</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-num" id="stat-total-coffee">0<span class="stat-unit">g</span></span>
+                                <span class="stat-label">Coffee</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-num" id="stat-total-water">0<span class="stat-unit">L</span></span>
+                                <span class="stat-label">Water</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-num" id="stat-avg-rating">0.0</span>
+                                <span class="stat-label">Avg Rating</span>
+                            </div>
+                        </div>
+
+                        <!-- CSS charts -->
+                        <div class="stats-charts">
+                            <div class="chart-container">
+                                <h4 class="chart-title">Brews by Method</h4>
+                                <div class="chart-bar-group" id="chart-methods">
+                                    <!-- Dynamic CSS Bars -->
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <h4 class="chart-title">Brews by Rating</h4>
+                                <div class="chart-bar-group" id="chart-ratings">
+                                    <!-- Dynamic CSS Bars -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Brew Logs -->
+                    <div class="history-section" style="margin-top: 24px;">
+                        <h3 class="sub-label-heading">📜 Brew Logs</h3>
+                        <div class="history-list" id="history-body">
+                            <p class="empty-state">No brews logged yet.</p>
+                        </div>
+                        <button class="btn-clear-history" id="btn-clear-history" style="display: none;">🗑 Clear All History</button>
+                    </div>
                 </div>
-            </div>
+            </main>
 
-            <!-- Stage Progress Bars -->
-            <div class="progress-area" id="progress-area">
-                <div class="progress-header">
-                    <span class="progress-stage" id="progress-stage">Ready to brew</span>
-                    <span class="progress-count" id="progress-count"></span>
-                </div>
-                <div class="bar-track total-track">
-                    <div class="bar-fill total-fill" id="total-fill"></div>
-                </div>
-                <div class="bar-track stage-track">
-                    <div class="bar-fill stage-fill" id="stage-fill"></div>
-                </div>
-            </div>
+        </div><!-- /.view-container -->
 
-            <!-- Stage List -->
-            <div class="stage-list" id="stage-list"></div>
-
-            <!-- Controls -->
-            <div class="controls" id="controls">
-                <button class="btn-start" id="btn-start">Start</button>
-                <button class="btn-icon" id="btn-sound" title="Toggle sound" aria-label="Toggle sound">🔔</button>
-                <button class="btn-icon" id="btn-reset" title="Reset timer (R)" aria-label="Reset timer">↺</button>
-            </div>
-
-            <!-- Keyboard hint -->
-            <div class="kbd-hint" id="kbd-hint">
-                <kbd>Space</kbd> Start/Pause &nbsp; <kbd>R</kbd> Reset
-            </div>
-
-        </div><!-- /.card -->
-
-        <!-- Brew Notes (shown after completion) -->
-        <div class="card brew-notes-card" id="brew-notes-card" hidden>
-            <h2 class="card-title">How was this brew? ☕</h2>
-            <div class="notes-rating" id="notes-rating">
-                <button class="rating-btn" data-r="sour">😖 Sour</button>
-                <button class="rating-btn" data-r="balanced">😊 Balanced</button>
-                <button class="rating-btn" data-r="bitter">😣 Bitter</button>
-            </div>
-            <textarea class="notes-text" id="notes-text" rows="2" placeholder="Optional notes..."></textarea>
-            <div class="notes-actions">
-                <button class="btn-save-note" id="btn-save-note">💾 Save to History</button>
-                <button class="btn-skip-note" id="btn-skip-note">Skip</button>
-            </div>
-        </div>
-
-        <!-- Footer buttons -->
-        <div class="footer-row">
-            <button class="footer-btn" id="btn-history" title="Brew history">📜 History</button>
-            <button class="footer-btn" id="btn-favorites" title="Saved recipes">⭐ Favorites</button>
-            <button class="footer-btn" id="btn-beans" title="Coffee Beans Inventory">🫘 Beans</button>
-            <p class="version">v2.1.0</p>
-        </div>
+        <!-- ── BOTTOM TAB NAVIGATION ────────────────── -->
+        <nav class="nav-bar">
+            <button class="nav-item active" id="nav-btn-timer" data-view="timer">
+                <span class="nav-icon">⏱️</span>
+                <span class="nav-label">Brew</span>
+            </button>
+            <button class="nav-item" id="nav-btn-beans" data-view="beans">
+                <span class="nav-icon">🫘</span>
+                <span class="nav-label">Beans</span>
+            </button>
+            <button class="nav-item" id="nav-btn-recipes" data-view="recipes">
+                <span class="nav-icon">🛠️</span>
+                <span class="nav-label">Recipes</span>
+            </button>
+            <button class="nav-item" id="nav-btn-journal" data-view="journal">
+                <span class="nav-icon">📜</span>
+                <span class="nav-label">Journal</span>
+            </button>
+        </nav>
 
     </div><!-- /.page -->
-
-    <!-- ── HISTORY MODAL ──────────────────────────── -->
-    <div class="modal-overlay" id="history-modal" hidden>
-        <div class="modal-card">
-            <div class="modal-header">
-                <h2 class="modal-title">📜 Brew History</h2>
-                <button class="modal-close" id="history-close">✕</button>
-            </div>
-            <div class="modal-body" id="history-body">
-                <p class="empty-state">No brews logged yet.</p>
-            </div>
-            <button class="btn-clear-history" id="btn-clear-history">🗑 Clear All</button>
-        </div>
-    </div>
-
-    <!-- ── FAVORITES MODAL ────────────────────────── -->
-    <div class="modal-overlay" id="favorites-modal" hidden>
-        <div class="modal-card">
-            <div class="modal-header">
-                <h2 class="modal-title">⭐ Saved Recipes</h2>
-                <button class="modal-close" id="favorites-close">✕</button>
-            </div>
-            <div class="modal-body" id="favorites-body">
-                <p class="empty-state">No favorites saved yet.</p>
-            </div>
-            <button class="btn-save-fav" id="btn-save-fav">+ Save Current Recipe</button>
-        </div>
-    </div>
-
-    <!-- ── COFFEE BEANS MODAL ──────────────────────── -->
-    <div class="modal-overlay" id="beans-modal" hidden>
-        <div class="modal-card">
-            <div class="modal-header">
-                <h2 class="modal-title">🫘 Coffee Beans</h2>
-                <button class="modal-close" id="beans-close">✕</button>
-            </div>
-            
-            <div class="modal-body" id="beans-modal-body">
-                <!-- Beans list view -->
-                <div id="beans-list-view">
-                    <div class="beans-list" id="beans-list">
-                        <p class="empty-state">No coffee beans added yet.</p>
-                    </div>
-                    <button class="btn-add-bean-show" id="btn-add-bean-show">+ Add New Bean Bag</button>
-                </div>
-
-                <!-- Add/Edit Bean Form view (hidden by default) -->
-                <div id="bean-form-view" hidden>
-                    <h3 class="form-title" id="bean-form-title">Add Coffee Bean</h3>
-                    <form id="bean-form" onsubmit="return false;">
-                        <input type="hidden" id="form-bean-id">
-                        
-                        <div class="form-group">
-                            <label for="input-roaster">Roaster</label>
-                            <input type="text" id="input-roaster" placeholder="e.g. Onyx Coffee Lab" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="input-name">Bean Name</label>
-                            <input type="text" id="input-name" placeholder="e.g. Monarch" required>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="input-origin">Origin</label>
-                                <input type="text" id="input-origin" placeholder="e.g. Colombia">
-                            </div>
-                            <div class="form-group">
-                                <label for="input-roast">Roast Level</label>
-                                <select id="input-roast">
-                                    <option value="Light">Light</option>
-                                    <option value="Medium-Light">Medium-Light</option>
-                                    <option value="Medium" selected>Medium</option>
-                                    <option value="Medium-Dark">Medium-Dark</option>
-                                    <option value="Dark">Dark</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="input-roast-date">Roast Date</label>
-                                <input type="date" id="input-roast-date">
-                            </div>
-                            <div class="form-group">
-                                <label for="input-bag-size">Bag Size (g)</label>
-                                <input type="number" id="input-bag-size" value="250" min="1" required>
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="input-weight">Current Weight (g)</label>
-                                <input type="number" id="input-weight" value="250" min="0" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="input-notes">Tasting Notes</label>
-                                <input type="text" id="input-notes" placeholder="e.g. Berries, Chocolate">
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn-cancel-bean" id="btn-cancel-bean">Cancel</button>
-                            <button type="button" class="btn-save-bean" id="btn-save-bean">Save</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <script src="js/script.js"></script>
 </body>
